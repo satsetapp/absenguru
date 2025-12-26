@@ -65,7 +65,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Toast */
-        #toast-container { position: fixed; top: 20px; right: 20px; teratas; z-index: 50; }
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 50; }
         .toast { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
         .toast.show { transform: translateX(0); }
     </style>
@@ -76,7 +76,7 @@
 
     <script>
         // ==========================================
-        // KONFIGURASI URL API (WAJIB DIISI)
+        // KONFIGURASI URL API (WAJIB DIISI!)
         // ==========================================
         const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec'; 
 
@@ -86,8 +86,13 @@
 
         // --- HELPER FUNCTIONS ---
         
-        // Fungsi Fetch Wrapper (Final Fix: GET for Read, no-cors POST for Write)
+        // Fungsi Fetch dengan Validasi URL & CORS Fix
         async function callAppsScript(action, payload = {}) {
+            if (!API_URL || API_URL.includes('PASTE_URL') || API_URL.includes('satsetapp.github.io')) {
+                console.error("URL API Error");
+                return null;
+            }
+
             try {
                 let url = API_URL;
                 let options = {
@@ -96,32 +101,37 @@
                     redirect: 'follow'
                 };
 
-                // Jika action = 'absen', gunakan POST
                 if (action === 'absen') {
                     options.method = 'POST';
                     options.body = JSON.stringify({ action, ...payload });
-                    options.mode = 'no-cors'; // Wajib no-cors untuk POST cross-origin agar tidak error
+                    options.mode = 'no-cors'; 
                 } else {
-                    // Untuk 'getUsers' dan 'getRekap', gunakan GET
                     const params = new URLSearchParams({ action, ...payload }).toString();
                     url = `${API_URL}?${params}`;
                 }
 
                 const response = await fetch(url, options);
 
-                // Jika mode 'no-cors', response body opaque, tidak bisa di-baca
                 if (options.mode === 'no-cors') {
-                    return { status: 'success', message: 'Data terkirim (Opaqued)' };
+                    return { status: 'success', message: 'Terupload' };
                 }
 
-                // Jika mode GET (Response bisa dibaca)
-                const result = await response.json();
-                return result;
+                const text = await response.text();
+                try {
+                    const result = JSON.parse(text);
+                    return result;
+                } catch (e) {
+                    throw new Error("Respons Server Bukan JSON");
+                }
 
             } catch (error) {
                 console.error("API Error:", error);
-                showToast("Gagal terhubung ke Server!", "error");
-                return { status: 'error', message: error.toString() };
+                if (error.message.includes("Failed to fetch")) {
+                    showToast("Gagal koneksi ke Server", "error");
+                } else {
+                    showToast(error.message, "error");
+                }
+                return null;
             }
         }
 
@@ -151,6 +161,7 @@
             if (session) {
                 try {
                     currentUser = JSON.parse(session);
+                    // Fetch user list untuk kebutuhan dashboard (misal list guru)
                     await fetchUsers(); 
                     renderApp();
                 } catch (e) {
@@ -183,7 +194,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Memproses...';
 
-            // Fetch user list (Method GET)
+            // Fetch user dulu
             await fetchUsers();
 
             if (!u || !p) {
@@ -194,7 +205,7 @@
                     localStorage.setItem('absensi_session', JSON.stringify(user));
                     currentUser = user;
                     showToast(`Selamat datang, ${user.name}!`, 'success');
-                    renderApp();
+                    renderApp(); // Render app setelah login sukses
                 } else {
                     showToast('Username atau password salah!', 'error');
                     document.getElementById('password').value = '';
@@ -209,6 +220,8 @@
             localStorage.removeItem('absensi_session');
             currentUser = null;
             showToast('Anda telah logout.', 'success');
+            // Ubah hash secara manual agar browser pindah halaman tanpa reload
+            window.history.pushState("", document.title, window.location.pathname + window.location.search);
             renderLogin();
         }
 
@@ -251,12 +264,10 @@
 
             const res = await callAppsScript('absen', payload);
 
-            // Karena no-cors, kita asumsikan sukses jika tidak error network
-            // Kita refresh data untuk memastikan
             showToast(`Mencatat Absensi...`, 'success');
             setTimeout(() => {
                  renderAbsensiGuru();
-            }, 1500); // Beri delay agar user merasa diproses
+            }, 1500);
         }
 
         async function getRekapData(role, params = {}) {
@@ -266,7 +277,8 @@
                 ...params
             };
             const res = await callAppsScript('getRekap', payload);
-            return res.status === 'success' ? res.data : [];
+            // Jika res null, return array kosong agar tidak crash saat mapping
+            return (res && res.status === 'success') ? res.data : [];
         }
 
         // --- RENDER FUNCTIONS ---
@@ -352,7 +364,7 @@
             const active = window.location.hash === `#${id}`;
             const activeClass = active ? 'bg-primary/20 text-primary border-l-4 border-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50';
             const baseClass = isMobile ? `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}` : `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}`;
-            return `<a href="#${id}" onclick="renderApp()" class="${baseClass}"><i class="fa-solid ${icon} w-5 text-center"></i><span class="font-medium">${label}</span></a>`;
+            return `<a href="#${id}" class="${baseClass}"><i class="fa-solid ${icon} w-5 text-center"></i><span class="font-medium">${label}</span></a>`;
         }
 
         async function renderDashboardAdmin() {
@@ -379,9 +391,8 @@
         async function renderAbsensiGuru() {
             const today = new Date().toISOString().split('T')[0];
             const period = getPayrollPeriod();
-            const allData = await getRekapData('Guru', { userId: currentUser.id, startDate: period.start, endDate: period.end }); 
             
-            // Logic periode 26-25
+            // Hitung tanggal start/end periode
             const d = new Date();
             let start, end;
             if (d.getDate() >= 26) {
@@ -391,13 +402,14 @@
                 start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
                 end = new Date(d.getFullYear(), d.getMonth(), 25);
             }
-            
-            // Ambil data history bulan ini
-            const history = allData.filter(row => {
-                const rDate = new Date(row.date);
-                return rDate >= start && rDate <= end;
-            });
 
+            const allData = await getRekapData('Guru', { 
+                userId: currentUser.id, 
+                startDate: start.toISOString().split('T')[0], 
+                endDate: end.toISOString().split('T')[0]
+            }); 
+            
+            const history = allData; // Sudah difilter di backend
             const userRecordToday = history.find(d => d.date === today);
             const hasAbsen = !!userRecordToday;
 
@@ -447,7 +459,6 @@
             const isAdmin = currentUser.role === 'Admin';
             const period = getPayrollPeriod();
             
-            // Logic tanggal periode
             const d = new Date();
             let start, end;
             if (d.getDate() >= 26) {
@@ -458,7 +469,6 @@
                 end = new Date(d.getFullYear(), d.getMonth(), 25);
             }
 
-            // Fetch data
             const rawData = await getRekapData(currentUser.role, { 
                 startDate: start.toISOString().split('T')[0], 
                 endDate: end.toISOString().split('T')[0],
@@ -501,15 +511,35 @@
             renderLayout(html, 'rekap');
         }
 
+        // RENDER UTAMA (ROUTING)
         function renderApp() {
-            if (!currentUser) { renderLogin(); return; }
+            // 1. Cek Login
+            if (!currentUser) {
+                renderLogin();
+                return;
+            }
+
+            // 2. Tentukan Halaman
             const hash = window.location.hash.replace('#', '') || 'dashboard';
-            if (hash === 'dashboard' && currentUser.role !== 'Admin') { window.location.hash = 'absensi'; renderAbsensiGuru(); return; }
-            if (hash === 'absensi' && currentUser.role !== 'Guru') { window.location.hash = 'dashboard'; renderDashboardAdmin(); return; }
-            if (hash === 'dashboard') renderDashboardAdmin();
-            else if (hash === 'absensi') renderAbsensiGuru();
-            else if (hash === 'rekap') renderRekap();
-            else renderDashboardAdmin();
+            const role = currentUser.role;
+
+            // 3. Routing Logic (PENTING: Jangan ubah window.location.hash di sini)
+            if (hash === 'dashboard') {
+                if (role === 'Admin') renderDashboardAdmin();
+                else renderAbsensiGuru(); // Jika Guru buka dashboard, tampilkan absensi
+            } 
+            else if (hash === 'absensi') {
+                if (role === 'Guru') renderAbsensiGuru();
+                else renderDashboardAdmin(); // Jika Admin buka absensi, tampilkan dashboard
+            }
+            else if (hash === 'rekap') {
+                renderRekap(); // Rekap bisa diakses Admin & Guru
+            }
+            else {
+                // Default fallback
+                if (role === 'Admin') renderDashboardAdmin();
+                else renderAbsensiGuru();
+            }
         }
 
         function showToast(message, type = 'success') {
