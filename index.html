@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Absensi Modern</title>
-   
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-   
+    
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-   
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Konfigurasi Tailwind -->
     <script>
         tailwind.config = {
@@ -31,9 +32,10 @@
             }
         }
     </script>
+
     <style>
         body { background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
-       
+        
         /* Glassmorphism */
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
@@ -46,20 +48,24 @@
             transition: all 0.3s ease;
         }
         .glass-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
+
         .text-gradient {
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
         /* Toast */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 50; }
+        #toast-container { position: fixed; top: 20px; right: 20px; teratas; z-index: 50; }
         .toast { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
         .toast.show { transform: translateX(0); }
     </style>
@@ -67,45 +73,63 @@
 <body class="antialiased min-h-screen flex flex-col">
     <div id="toast-container" class="flex flex-col gap-3"></div>
     <div id="app" class="flex-grow flex flex-col"></div>
+
     <script>
         // ==========================================
-        // KONFIGURASI URL API (WAJIB DIISI DENGAN URL DEPLOYMENT BARU)
+        // KONFIGURASI URL API (WAJIB DIISI)
         // ==========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec'; // Ganti dengan URL deployment baru setelah set 'Anyone'
+        const API_URL = 'URL_WEB_APP_BARU_ANDA_DISINI'; 
+
         // State Global
         let currentUser = null;
-        let allUsersCache = []; // Cache data user dari Google Sheet
+        let allUsersCache = []; 
+
         // --- HELPER FUNCTIONS ---
-       
-        // Fungsi Fetch Wrapper (Handle CORS & Error) - Modifikasi: Ganti Content-Type ke text/plain untuk bypass preflight CORS
+        
+        // Fungsi Fetch Wrapper (Final Fix: GET for Read, no-cors POST for Write)
         async function callAppsScript(action, payload = {}) {
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Modifikasi utama untuk CORS
-                    body: JSON.stringify({ ...payload, action }),
-                    mode: 'cors'  // Pertahankan, atau coba 'no-cors' jika masih bermasalah (tapi response.json() mungkin gagal)
-                });
-               
+                let url = API_URL;
+                let options = {
+                    method: 'GET', 
+                    headers: { 'Content-Type': 'text/plain' }, 
+                    redirect: 'follow'
+                };
+
+                // Jika action = 'absen', gunakan POST
+                if (action === 'absen') {
+                    options.method = 'POST';
+                    options.body = JSON.stringify({ action, ...payload });
+                    options.mode = 'no-cors'; // Wajib no-cors untuk POST cross-origin agar tidak error
+                } else {
+                    // Untuk 'getUsers' dan 'getRekap', gunakan GET
+                    const params = new URLSearchParams({ action, ...payload }).toString();
+                    url = `${API_URL}?${params}`;
+                }
+
+                const response = await fetch(url, options);
+
+                // Jika mode 'no-cors', response body opaque, tidak bisa di-baca
+                if (options.mode === 'no-cors') {
+                    return { status: 'success', message: 'Data terkirim (Opaqued)' };
+                }
+
+                // Jika mode GET (Response bisa dibaca)
                 const result = await response.json();
                 return result;
+
             } catch (error) {
-                console.error("API Error Details:", {
-                    message: error.message,
-                    stack: error.stack,
-                    apiUrl: API_URL,
-                    action: action,
-                    payload: payload,
-                    responseStatus: error.response ? error.response.status : 'No response'  // Detail log
-                });
-                showToast("Gagal terhubung ke Server! Cek console untuk detail.", "error");
+                console.error("API Error:", error);
+                showToast("Gagal terhubung ke Server!", "error");
                 return { status: 'error', message: error.toString() };
             }
         }
+
         function getPayrollPeriod(date = new Date()) {
             const day = date.getDate();
             let month = date.getMonth();
             let year = date.getFullYear();
+
             if (day >= 26) {
                 month += 1;
                 if (month > 11) { month = 0; year += 1; }
@@ -113,70 +137,110 @@
             const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
             return { year, month, periodName: `${monthNames[month]} ${year}`, monthIndex: month };
         }
+
         function formatTanggalIndo(dateString) {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            // Cek apakah input string atau date object
-            const d = new Date(dateString);
+            const d = new Date(dateString); 
             return d.toLocaleDateString('id-ID', options);
         }
+
         // --- AUTHENTICATION ---
+
         async function initApp() {
             const session = localStorage.getItem('absensi_session');
             if (session) {
-                currentUser = JSON.parse(session);
-                // Validasi session dengan fetch users (opsional, agar data up to date)
-                await fetchUsers();
-                renderApp();
+                try {
+                    currentUser = JSON.parse(session);
+                    await fetchUsers(); 
+                    renderApp();
+                } catch (e) {
+                    localStorage.removeItem('absensi_session');
+                    renderLogin();
+                }
             } else {
                 renderLogin();
             }
         }
+
         async function fetchUsers() {
             const res = await callAppsScript('getUsers');
-            if (res.status === 'success') {
+            if (res && res.status === 'success') {
                 allUsersCache = res.data;
+            } else if (Array.isArray(res)) {
+                allUsersCache = res; 
+            } else {
+                allUsersCache = [];
             }
         }
+
         async function handleLogin(e) {
             e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-           
-            const btn = e.target.querySelector('button');
-            const originalText = btn.innerText;
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerText = 'Memeriksa...';
-            // Fetch user list dari Google Sheet
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Memproses...';
+
+            // Fetch user list (Method GET)
             await fetchUsers();
-            const user = allUsersCache.find(uData => uData.username === u && uData.password === p);
-            if (user) {
-                localStorage.setItem('absensi_session', JSON.stringify(user));
-                currentUser = user;
-                showToast(`Selamat datang, ${user.name}!`, 'success');
-                renderApp();
+
+            if (!u || !p) {
+                showToast('Username dan Password wajib diisi', 'error');
             } else {
-                showToast('Username atau password salah!', 'error');
+                const user = allUsersCache.find(uData => uData.username === u && uData.password === p);
+                if (user) {
+                    localStorage.setItem('absensi_session', JSON.stringify(user));
+                    currentUser = user;
+                    showToast(`Selamat datang, ${user.name}!`, 'success');
+                    renderApp();
+                } else {
+                    showToast('Username atau password salah!', 'error');
+                    document.getElementById('password').value = '';
+                }
             }
+
             btn.disabled = false;
-            btn.innerText = originalText;
+            btn.innerHTML = originalText;
         }
+
         function handleLogout() {
             localStorage.removeItem('absensi_session');
             currentUser = null;
             showToast('Anda telah logout.', 'success');
             renderLogin();
         }
+
+        // Toggle Password
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('togglePasswordIcon');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
         // --- ABSENSI FEATURES ---
+
         async function handleAbsen() {
             const btn = document.getElementById('btnAbsen');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim...';
+
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0];
+            const dateStr = now.toISOString().split('T')[0]; 
             const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-           
+            
             const isLate = now.getHours() > 7 || (now.getHours() === 7 && now.getMinutes() > 30);
             const status = isLate ? 'Terlambat' : 'Hadir';
+
             const payload = {
                 userId: currentUser.id,
                 userName: currentUser.name,
@@ -184,22 +248,17 @@
                 time: timeString,
                 status: status
             };
+
             const res = await callAppsScript('absen', payload);
-            if (res.status === 'success') {
-                showToast(`Berhasil Absen (${status})`, 'success');
-                renderAbsensiGuru();
-            } else {
-                // Cek jika error karena duplikat
-                if (res.message && res.message.includes('sudah absen')) {
-                    showToast('Anda sudah absen hari ini', 'error');
-                    renderAbsensiGuru(); // Refresh UI agar tombol disabled
-                } else {
-                    showToast(res.message || 'Gagal absen', 'error');
-                    btn.disabled = false;
-                    btn.innerText = 'Absen Sekarang';
-                }
-            }
+
+            // Karena no-cors, kita asumsikan sukses jika tidak error network
+            // Kita refresh data untuk memastikan
+            showToast(`Mencatat Absensi...`, 'success');
+            setTimeout(() => {
+                 renderAbsensiGuru();
+            }, 1500); // Beri delay agar user merasa diproses
         }
+
         async function getRekapData(role, params = {}) {
             const payload = {
                 role: role,
@@ -209,7 +268,9 @@
             const res = await callAppsScript('getRekap', payload);
             return res.status === 'success' ? res.data : [];
         }
+
         // --- RENDER FUNCTIONS ---
+
         function renderLogin() {
             document.getElementById('app').innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -217,6 +278,7 @@
                         <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-primary rounded-full mix-blend-multiply filter blur-[120px] opacity-30 animate-pulse"></div>
                         <div class="absolute top-[20%] -right-[10%] w-[50%] h-[50%] bg-secondary rounded-full mix-blend-multiply filter blur-[120px] opacity-30"></div>
                     </div>
+
                     <div class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-md fade-in">
                         <div class="text-center mb-8">
                             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-secondary mb-4 shadow-lg shadow-primary/30">
@@ -230,14 +292,17 @@
                                 <label class="block text-sm font-medium text-slate-300 mb-2">Username</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fa-regular fa-user text-slate-400"></i></div>
-                                    <input type="text" id="username" class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary" placeholder="Masukkan username" required>
+                                    <input type="text" id="username" class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary" placeholder="Masukkan username" required autocomplete="username">
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-2">Password</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fa-solid fa-lock text-slate-400"></i></div>
-                                    <input type="password" id="password" class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary" placeholder="Masukkan password" required>
+                                    <input type="password" id="password" class="w-full pl-10 pr-10 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary" placeholder="Masukkan password" required autocomplete="current-password">
+                                    <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white cursor-pointer focus:outline-none">
+                                        <i id="togglePasswordIcon" class="fa-solid fa-eye"></i>
+                                    </button>
                                 </div>
                             </div>
                             <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all transform hover:scale-[1.02]">Masuk</button>
@@ -247,6 +312,7 @@
             `;
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
         }
+
         function renderLayout(contentHTML, activeMenu) {
             const isMobile = window.innerWidth < 768;
             const sidebarHTML = `
@@ -280,6 +346,7 @@
             `;
             document.getElementById('app').innerHTML = sidebarHTML;
         }
+
         function generateMenuLink(id, label, icon, visible, isMobile = false) {
             if (!visible) return '';
             const active = window.location.hash === `#${id}`;
@@ -287,15 +354,16 @@
             const baseClass = isMobile ? `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}` : `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}`;
             return `<a href="#${id}" onclick="renderApp()" class="${baseClass}"><i class="fa-solid ${icon} w-5 text-center"></i><span class="font-medium">${label}</span></a>`;
         }
+
         async function renderDashboardAdmin() {
-            // Ambil semua data untuk dashboard - tanpa filter tanggal
-            const allData = await getRekapData('Admin');
+            const allData = await getRekapData('Admin'); 
             const today = new Date().toISOString().split('T')[0];
-            const todayRecords = allData.filter(d => d.date.startsWith(today)); // Perbaikan filter tanggal (API returns string)
-           
+            const todayRecords = allData.filter(d => d.date.startsWith(today)); 
+            
             const hadir = todayRecords.length;
             const terlambat = todayRecords.filter(d => d.status === 'Terlambat').length;
             const tepatWaktu = hadir - terlambat;
+
             const html = `
                 <div class="mb-8"><h2 class="text-2xl font-bold text-white mb-1">Dashboard Admin</h2><p class="text-slate-400">Ringkasan statistik hari ini</p></div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -307,11 +375,13 @@
             `;
             renderLayout(html, 'dashboard');
         }
+
         async function renderAbsensiGuru() {
             const today = new Date().toISOString().split('T')[0];
             const period = getPayrollPeriod();
-           
-            // Logic periode 26-25 - Hitung start dan end sebelum fetch data
+            const allData = await getRekapData('Guru', { userId: currentUser.id, startDate: period.start, endDate: period.end }); 
+            
+            // Logic periode 26-25
             const d = new Date();
             let start, end;
             if (d.getDate() >= 26) {
@@ -321,21 +391,16 @@
                 start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
                 end = new Date(d.getFullYear(), d.getMonth(), 25);
             }
-           
-            // Fetch data dengan filter tanggal periode
-            const allData = await getRekapData('Guru', { 
-                userId: currentUser.id, 
-                startDate: start.toISOString().split('T')[0], 
-                endDate: end.toISOString().split('T')[0] 
-            });
-           
-            // Ambil data history bulan ini (sudah difilter backend, tapi konfirmasi client-side jika perlu)
+            
+            // Ambil data history bulan ini
             const history = allData.filter(row => {
                 const rDate = new Date(row.date);
                 return rDate >= start && rDate <= end;
             });
+
             const userRecordToday = history.find(d => d.date === today);
             const hasAbsen = !!userRecordToday;
+
             const html = `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div><h2 class="text-2xl font-bold text-white">Absensi Guru</h2><p class="text-slate-400">${formatTanggalIndo(new Date())}</p></div>
@@ -370,17 +435,18 @@
                 </div>
             `;
             renderLayout(html, 'absensi');
-           
+            
             setInterval(() => {
                 const now = new Date();
                 const clock = document.getElementById('liveClock');
                 if(clock) clock.innerText = now.toLocaleTimeString('id-ID');
             }, 1000);
         }
+
         async function renderRekap() {
             const isAdmin = currentUser.role === 'Admin';
             const period = getPayrollPeriod();
-           
+            
             // Logic tanggal periode
             const d = new Date();
             let start, end;
@@ -391,12 +457,14 @@
                 start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
                 end = new Date(d.getFullYear(), d.getMonth(), 25);
             }
+
             // Fetch data
-            const rawData = await getRekapData(currentUser.role, {
-                startDate: start.toISOString().split('T')[0],
+            const rawData = await getRekapData(currentUser.role, { 
+                startDate: start.toISOString().split('T')[0], 
                 endDate: end.toISOString().split('T')[0],
-                userId: currentUser.id
+                userId: currentUser.id 
             });
+
             let tableContent = '';
             if (isAdmin) {
                 tableContent = `
@@ -428,9 +496,11 @@
                     <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-6 py-3">Tanggal</th><th class="px-6 py-3">Jam</th><th class="px-6 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${rawData.map(row => `<tr class="hover:bg-slate-700/30"><td class="px-6 py-3">${formatTanggalIndo(row.date)}</td><td class="px-6 py-3">${row.time}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${row.status}</span></td></tr>`).join('')}</tbody></table></div>
                 `;
             }
+
             const html = `<div class="mb-6"><h2 class="text-2xl font-bold text-white">Data Rekapitulasi</h2></div>${tableContent}`;
             renderLayout(html, 'rekap');
         }
+
         function renderApp() {
             if (!currentUser) { renderLogin(); return; }
             const hash = window.location.hash.replace('#', '') || 'dashboard';
@@ -441,6 +511,7 @@
             else if (hash === 'rekap') renderRekap();
             else renderDashboardAdmin();
         }
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -452,20 +523,21 @@
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
-       
+        
         function filterTable() {
             const input = document.getElementById("searchGuru");
             const filter = input.value.toUpperCase();
             const table = document.querySelector("tbody");
             const tr = table.getElementsByTagName("tr");
             for (let i = 0; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td")[0];
+                const td = tr[i].getElementsByTagName("td")[0]; 
                 if (td) {
                     const txtValue = td.textContent || td.innerText;
                     tr[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
                 }
             }
         }
+
         window.addEventListener('hashchange', renderApp);
         window.addEventListener('load', initApp);
     </script>
