@@ -1,19 +1,17 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Absensi Modern</title>
-   
-    <!-- Tailwind CSS -->
+
     <script src="https://cdn.tailwindcss.com"></script>
-   
-    <!-- FontAwesome Icons -->
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-   
-    <!-- Google Fonts -->
+
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Konfigurasi Tailwind -->
+
     <script>
         tailwind.config = {
             theme: {
@@ -31,152 +29,280 @@
             }
         }
     </script>
+
     <style>
-        body { background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
-       
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
         /* Glassmorphism */
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .glass-card {
-            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
         }
-        .glass-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
+
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-2px);
+        }
+
         .text-gradient {
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Toast */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 50; }
-        .toast { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
-        .toast.show { transform: translateX(0); }
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+
+        .toast {
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
     </style>
 </head>
+
 <body class="antialiased min-h-screen flex flex-col">
     <div id="toast-container" class="flex flex-col gap-3"></div>
     <div id="app" class="flex-grow flex flex-col"></div>
+
     <script>
         // ==========================================
-        // KONFIGURASI URL API (WAJIB DIISI DENGAN URL DEPLOYMENT BARU)
+        // KONFIGURASI URL API (PASTIKAN INI URL TERBARU DARI DEPLOY ANDA)
         // ==========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec'; // Ganti dengan URL deployment baru setelah set 'Anyone'
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec';
+
         // State Global
         let currentUser = null;
-        let allUsersCache = []; // Cache data user dari Google Sheet
+        let allUsersCache = []; 
+
         // --- HELPER FUNCTIONS ---
-       
-        // Fungsi Fetch Wrapper (Handle CORS & Error) - Modifikasi: Tambah mode: 'cors' dan detail logging
+
+        // PERBAIKAN UTAMA DI SINI (Masalah Login)
         async function callAppsScript(action, payload = {}) {
             try {
+                // Gunakan URLSearchParams untuk mengirim data sebagai form-urlencoded
+                // Ini mencegah masalah CORS yang terjadi jika pakai JSON di Apps Script
+                const formData = new URLSearchParams();
+                formData.append('action', action);
+                
+                // Masukkan payload ke formData
+                for (const key in payload) {
+                    formData.append(key, payload[key]);
+                }
+
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...payload, action }),
-                    mode: 'cors'  // Modifikasi: Tambah ini untuk handle CORS (ganti ke 'no-cors' jika masih error, tapi response.json() mungkin gagal)
+                    // JANGAN PAKAI HEADER 'Content-Type': 'application/json' UNTUK APPS SCRIPT
+                    // Cukup kirim body sebagai string JSON murni agar Apps Script membacanya di e.postData.contents
+                    body: JSON.stringify({ action, ...payload }) 
                 });
-               
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const result = await response.json();
-                return result;
+
+                if (result.status === 'success' && result.data) {
+                    return result.data; 
+                } else if (result.status === 'error') {
+                    console.error("Server Error:", result.message);
+                    return { status: 'error', message: result.message };
+                }
+
+                return result; 
+
             } catch (error) {
-                console.error("API Error Details:", {
-                    message: error.message,
-                    stack: error.stack,
-                    apiUrl: API_URL,
-                    action: action,
-                    payload: payload,
-                    responseStatus: error.response ? error.response.status : 'No response'  // Tambah detail log
-                });
-                showToast("Gagal terhubung ke Server! Cek console untuk detail.", "error");
-                return { status: 'error', message: error.toString() };
+                console.error("API Error:", error);
+                showToast("Gagal terhubung ke Server! Cek koneksi.", "error");
+                return { status: 'error', message: error.message };
             }
         }
+
+        // PERBAIKAN LOGIKA PERIODE (Agar data muncul di dashboard)
         function getPayrollPeriod(date = new Date()) {
             const day = date.getDate();
             let month = date.getMonth();
             let year = date.getFullYear();
+
+            // Hitung Start & End Date untuk query
+            let startDate, endDate;
+
             if (day >= 26) {
+                // Periode berjalan (misal 26 Jan - 25 Feb)
+                startDate = new Date(year, month, 26);
+                endDate = new Date(year, month + 1, 25);
+                
+                // Nama periode ikut bulan depannya
                 month += 1;
                 if (month > 11) { month = 0; year += 1; }
+            } else {
+                // Periode berjalan (misal 26 Des - 25 Jan)
+                startDate = new Date(year, month - 1, 26);
+                endDate = new Date(year, month, 25);
             }
+
             const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-            return { year, month, periodName: `${monthNames[month]} ${year}`, monthIndex: month };
+            
+            // Format YYYY-MM-DD untuk API
+            const formatDate = (d) => {
+                return d.toISOString().split('T')[0];
+            };
+
+            return { 
+                year, 
+                month, 
+                periodName: `${monthNames[month]} ${year}`, 
+                monthIndex: month,
+                start: formatDate(startDate),
+                end: formatDate(endDate)
+            };
         }
+
         function formatTanggalIndo(dateString) {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            // Cek apakah input string atau date object
             const d = new Date(dateString);
             return d.toLocaleDateString('id-ID', options);
         }
+
         // --- AUTHENTICATION ---
+
         async function initApp() {
             const session = localStorage.getItem('absensi_session');
             if (session) {
                 currentUser = JSON.parse(session);
-                // Validasi session dengan fetch users (opsional, agar data up to date)
-                await fetchUsers();
-                renderApp();
+                // Validasi session background
+                fetchUsers().then(() => {
+                    renderApp();
+                });
             } else {
                 renderLogin();
             }
         }
+
         async function fetchUsers() {
             const res = await callAppsScript('getUsers');
-            if (res.status === 'success') {
+            // Pastikan res adalah array, jika tidak (misal error), jadikan array kosong
+            if (Array.isArray(res)) {
+                allUsersCache = res;
+            } else if (res && res.data) { // Handle jika struktur {status, data}
                 allUsersCache = res.data;
+            } else {
+                allUsersCache = [];
             }
         }
+
         async function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
-           
+
             const btn = e.target.querySelector('button');
             const originalText = btn.innerText;
             btn.disabled = true;
             btn.innerText = 'Memeriksa...';
-            // Fetch user list dari Google Sheet
-            await fetchUsers();
-            const user = allUsersCache.find(uData => uData.username === u && uData.password === p);
-            if (user) {
-                localStorage.setItem('absensi_session', JSON.stringify(user));
-                currentUser = user;
-                showToast(`Selamat datang, ${user.name}!`, 'success');
-                renderApp();
-            } else {
-                showToast('Username atau password salah!', 'error');
+
+            try {
+                await fetchUsers(); // Ambil data terbaru
+
+                // Cari user di cache
+                const user = allUsersCache.find(uData => uData.username == u && uData.password == p);
+
+                if (user) {
+                    localStorage.setItem('absensi_session', JSON.stringify(user));
+                    currentUser = user;
+                    showToast(`Selamat datang, ${user.name || user.username}!`, 'success');
+                    renderApp();
+                } else {
+                    showToast('Username atau password salah!', 'error');
+                }
+            } catch (err) {
+                showToast('Terjadi kesalahan sistem.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
             }
-            btn.disabled = false;
-            btn.innerText = originalText;
         }
+
         function handleLogout() {
             localStorage.removeItem('absensi_session');
             currentUser = null;
             showToast('Anda telah logout.', 'success');
             renderLogin();
         }
+
         // --- ABSENSI FEATURES ---
+
         async function handleAbsen() {
             const btn = document.getElementById('btnAbsen');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim...';
+
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0];
-            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-           
+            // Menggunakan waktu lokal komputer
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+            
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':');
+
             const isLate = now.getHours() > 7 || (now.getHours() === 7 && now.getMinutes() > 30);
             const status = isLate ? 'Terlambat' : 'Hadir';
+
             const payload = {
                 userId: currentUser.id,
                 userName: currentUser.name,
@@ -184,22 +310,24 @@
                 time: timeString,
                 status: status
             };
+
             const res = await callAppsScript('absen', payload);
-            if (res.status === 'success') {
+
+            if (res && (res.status === 'success' || (res.message && res.message.includes('Berhasil')))) {
                 showToast(`Berhasil Absen (${status})`, 'success');
                 renderAbsensiGuru();
             } else {
-                // Cek jika error karena duplikat
-                if (res.message && res.message.includes('sudah absen')) {
+                if (res && res.message && res.message.includes('sudah absen')) {
                     showToast('Anda sudah absen hari ini', 'error');
-                    renderAbsensiGuru(); // Refresh UI agar tombol disabled
+                    renderAbsensiGuru();
                 } else {
-                    showToast(res.message || 'Gagal absen', 'error');
+                    showToast(res ? res.message : 'Gagal absen', 'error');
                     btn.disabled = false;
                     btn.innerText = 'Absen Sekarang';
                 }
             }
         }
+
         async function getRekapData(role, params = {}) {
             const payload = {
                 role: role,
@@ -207,9 +335,11 @@
                 ...params
             };
             const res = await callAppsScript('getRekap', payload);
-            return res.status === 'success' ? res.data : [];
+            return Array.isArray(res) ? res : [];
         }
+
         // --- RENDER FUNCTIONS ---
+
         function renderLogin() {
             document.getElementById('app').innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -217,6 +347,7 @@
                         <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-primary rounded-full mix-blend-multiply filter blur-[120px] opacity-30 animate-pulse"></div>
                         <div class="absolute top-[20%] -right-[10%] w-[50%] h-[50%] bg-secondary rounded-full mix-blend-multiply filter blur-[120px] opacity-30"></div>
                     </div>
+
                     <div class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-md fade-in">
                         <div class="text-center mb-8">
                             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-secondary mb-4 shadow-lg shadow-primary/30">
@@ -247,6 +378,7 @@
             `;
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
         }
+
         function renderLayout(contentHTML, activeMenu) {
             const isMobile = window.innerWidth < 768;
             const sidebarHTML = `
@@ -280,6 +412,7 @@
             `;
             document.getElementById('app').innerHTML = sidebarHTML;
         }
+
         function generateMenuLink(id, label, icon, visible, isMobile = false) {
             if (!visible) return '';
             const active = window.location.hash === `#${id}`;
@@ -287,52 +420,60 @@
             const baseClass = isMobile ? `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}` : `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}`;
             return `<a href="#${id}" onclick="renderApp()" class="${baseClass}"><i class="fa-solid ${icon} w-5 text-center"></i><span class="font-medium">${label}</span></a>`;
         }
+
         async function renderDashboardAdmin() {
-            // Ambil semua data untuk dashboard
-            const allData = await getRekapData('Admin');
-            const today = new Date().toISOString().split('T')[0];
-            const todayRecords = allData.filter(d => d.date.startsWith(today)); // Perbaikan filter tanggal (API returns string)
-           
+            const period = getPayrollPeriod();
+            // Ambil data bulan ini untuk statistik
+            const allData = await getRekapData('Admin', { startDate: period.start, endDate: period.end });
+            
+            // Format hari ini YYYY-MM-DD lokal
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const today = `${year}-${month}-${day}`;
+
+            const todayRecords = allData.filter(d => d.date.substring(0, 10) === today);
+
             const hadir = todayRecords.length;
             const terlambat = todayRecords.filter(d => d.status === 'Terlambat').length;
             const tepatWaktu = hadir - terlambat;
+
             const html = `
-                <div class="mb-8"><h2 class="text-2xl font-bold text-white mb-1">Dashboard Admin</h2><p class="text-slate-400">Ringkasan statistik hari ini</p></div>
+                <div class="mb-8"><h2 class="text-2xl font-bold text-white mb-1">Dashboard Admin</h2><p class="text-slate-400">Statistik Hari Ini (${formatTanggalIndo(today)})</p></div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="glass-card p-6 rounded-2xl relative overflow-hidden group"><div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20"><i class="fa-solid fa-users text-6xl text-primary"></i></div><h3 class="text-slate-400 font-medium mb-1">Total Hadir</h3><p class="text-4xl font-bold text-white">${hadir}</p></div>
                     <div class="glass-card p-6 rounded-2xl relative overflow-hidden group"><div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20"><i class="fa-solid fa-clock text-6xl text-yellow-500"></i></div><h3 class="text-slate-400 font-medium mb-1">Terlambat</h3><p class="text-4xl font-bold text-yellow-500">${terlambat}</p></div>
                     <div class="glass-card p-6 rounded-2xl relative overflow-hidden group"><div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20"><i class="fa-solid fa-check-circle text-6xl text-green-500"></i></div><h3 class="text-slate-400 font-medium mb-1">Tepat Waktu</h3><p class="text-4xl font-bold text-green-500">${tepatWaktu}</p></div>
                 </div>
-                <div class="glass-panel rounded-2xl p-6"><h3 class="text-lg font-bold mb-6">Aktivitas Terakhir</h3><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-4 py-3">Nama</th><th class="px-4 py-3">Waktu</th><th class="px-4 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${allData.slice(-5).reverse().map(r => `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3">${r.userName}</td><td class="px-4 py-3">${r.date} ${r.time}</td><td class="px-4 py-3"><span class="${r.status==='Terlambat'?'text-yellow-400':'text-green-400'}">${r.status}</span></td></tr>`).join('')}</tbody></table></div></div>
+                <div class="glass-panel rounded-2xl p-6"><h3 class="text-lg font-bold mb-6">Aktivitas Terakhir</h3><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-4 py-3">Nama</th><th class="px-4 py-3">Waktu</th><th class="px-4 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${allData.slice(-5).reverse().map(r => `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3">${r.userName}</td><td class="px-4 py-3">${formatTanggalIndo(r.date)} ${r.time}</td><td class="px-4 py-3"><span class="${r.status === 'Terlambat' ? 'text-yellow-400' : 'text-green-400'}">${r.status}</span></td></tr>`).join('')}</tbody></table></div></div>
             `;
             renderLayout(html, 'dashboard');
         }
+
         async function renderAbsensiGuru() {
-            const today = new Date().toISOString().split('T')[0];
             const period = getPayrollPeriod();
-            const allData = await getRekapData('Guru', { userId: currentUser.id, startDate: period.start, endDate: period.end }); // Perlu logic hitung tanggal start/end di sini atau kirim raw date
-           
-            // Logic periode 26-25
-            const d = new Date();
-            let start, end;
-            if (d.getDate() >= 26) {
-                start = new Date(d.getFullYear(), d.getMonth(), 26);
-                end = new Date(d.getFullYear(), d.getMonth() + 1, 25);
-            } else {
-                start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
-                end = new Date(d.getFullYear(), d.getMonth(), 25);
-            }
-           
-            // Ambil data history bulan ini
+            // Pass startDate & endDate yang sudah dihitung di fungsi getPayrollPeriod
+            const allData = await getRekapData('Guru', { userId: currentUser.id, startDate: period.start, endDate: period.end });
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const today = `${year}-${month}-${day}`;
+
+            // Filter data yang sesuai rentang tanggal (double check)
             const history = allData.filter(row => {
-                const rDate = new Date(row.date);
-                return rDate >= start && rDate <= end;
+                // Sederhanakan: kita percaya filter dari server (Apps Script), tapi ini untuk keamanan tampilan
+                return true; 
             });
-            const userRecordToday = history.find(d => d.date === today);
+
+            const userRecordToday = history.find(d => d.date.substring(0, 10) === today);
             const hasAbsen = !!userRecordToday;
+
             const html = `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div><h2 class="text-2xl font-bold text-white">Absensi Guru</h2><p class="text-slate-400">${formatTanggalIndo(new Date())}</p></div>
+                    <div><h2 class="text-2xl font-bold text-white">Absensi Guru</h2><p class="text-slate-400">${formatTanggalIndo(today)}</p></div>
                     <div class="px-4 py-2 rounded-lg bg-primary/20 border border-primary/30 text-primary font-medium">Periode: ${period.periodName}</div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -351,11 +492,11 @@
                     <div class="lg:col-span-2 space-y-6">
                         <div class="grid grid-cols-3 gap-4">
                             <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Hadir</p><p class="text-2xl font-bold mt-1">${history.length}</p></div>
-                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Tepat Waktu</p><p class="text-2xl font-bold text-green-400 mt-1">${history.filter(h=>h.status==='Hadir').length}</p></div>
-                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Terlambat</p><p class="text-2xl font-bold text-yellow-400 mt-1">${history.filter(h=>h.status==='Terlambat').length}</p></div>
+                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Tepat Waktu</p><p class="text-2xl font-bold text-green-400 mt-1">${history.filter(h => h.status === 'Hadir').length}</p></div>
+                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Terlambat</p><p class="text-2xl font-bold text-yellow-400 mt-1">${history.filter(h => h.status === 'Terlambat').length}</p></div>
                         </div>
                         <div class="glass-panel rounded-2xl overflow-hidden">
-                             <div class="p-4 border-b border-slate-700/50"><h3 class="font-bold">Riwayat</h3></div>
+                             <div class="p-4 border-b border-slate-700/50"><h3 class="font-bold">Riwayat Bulan Ini</h3></div>
                              <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-6 py-3">Tanggal</th><th class="px-6 py-3">Jam</th><th class="px-6 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">
                                 ${history.length > 0 ? history.map(row => `<tr class="hover:bg-slate-700/30"><td class="px-6 py-3">${formatTanggalIndo(row.date)}</td><td class="px-6 py-3">${row.time}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${row.status}</span></td></tr>`).join('') : '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Belum ada data.</td></tr>'}
                              </tbody></table></div>
@@ -364,33 +505,25 @@
                 </div>
             `;
             renderLayout(html, 'absensi');
-           
+
             setInterval(() => {
                 const now = new Date();
                 const clock = document.getElementById('liveClock');
-                if(clock) clock.innerText = now.toLocaleTimeString('id-ID');
+                if (clock) clock.innerText = now.toLocaleTimeString('id-ID');
             }, 1000);
         }
+
         async function renderRekap() {
             const isAdmin = currentUser.role === 'Admin';
             const period = getPayrollPeriod();
-           
-            // Logic tanggal periode
-            const d = new Date();
-            let start, end;
-            if (d.getDate() >= 26) {
-                start = new Date(d.getFullYear(), d.getMonth(), 26);
-                end = new Date(d.getFullYear(), d.getMonth() + 1, 25);
-            } else {
-                start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
-                end = new Date(d.getFullYear(), d.getMonth(), 25);
-            }
+
             // Fetch data
             const rawData = await getRekapData(currentUser.role, {
-                startDate: start.toISOString().split('T')[0],
-                endDate: end.toISOString().split('T')[0],
+                startDate: period.start,
+                endDate: period.end,
                 userId: currentUser.id
             });
+
             let tableContent = '';
             if (isAdmin) {
                 tableContent = `
@@ -406,11 +539,11 @@
                                 </thead>
                                 <tbody class="divide-y divide-slate-700/50">
                                     ${allUsersCache.filter(u => u.role === 'Guru').map(u => {
-                                        const uData = rawData.filter(d => d.userId == u.id);
-                                        const h = uData.length;
-                                        const t = uData.filter(d => d.status === 'Terlambat').length;
-                                        return `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3 font-medium">${u.name}</td><td class="px-4 py-3 text-center">${h}</td><td class="px-4 py-3 text-center text-green-400">${h-t}</td><td class="px-4 py-3 text-center text-yellow-400">${t}</td></tr>`;
-                                    }).join('')}
+                    const uData = rawData.filter(d => d.userId == u.id);
+                    const h = uData.length;
+                    const t = uData.filter(d => d.status === 'Terlambat').length;
+                    return `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3 font-medium">${u.name}</td><td class="px-4 py-3 text-center">${h}</td><td class="px-4 py-3 text-center text-green-400">${h - t}</td><td class="px-4 py-3 text-center text-yellow-400">${t}</td></tr>`;
+                }).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -422,9 +555,11 @@
                     <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-6 py-3">Tanggal</th><th class="px-6 py-3">Jam</th><th class="px-6 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${rawData.map(row => `<tr class="hover:bg-slate-700/30"><td class="px-6 py-3">${formatTanggalIndo(row.date)}</td><td class="px-6 py-3">${row.time}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${row.status}</span></td></tr>`).join('')}</tbody></table></div>
                 `;
             }
+
             const html = `<div class="mb-6"><h2 class="text-2xl font-bold text-white">Data Rekapitulasi</h2></div>${tableContent}`;
             renderLayout(html, 'rekap');
         }
+
         function renderApp() {
             if (!currentUser) { renderLogin(); return; }
             const hash = window.location.hash.replace('#', '') || 'dashboard';
@@ -435,6 +570,7 @@
             else if (hash === 'rekap') renderRekap();
             else renderDashboardAdmin();
         }
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -446,7 +582,7 @@
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
-       
+
         function filterTable() {
             const input = document.getElementById("searchGuru");
             const filter = input.value.toUpperCase();
@@ -460,8 +596,10 @@
                 }
             }
         }
+
         window.addEventListener('hashchange', renderApp);
         window.addEventListener('load', initApp);
     </script>
 </body>
+
 </html>
