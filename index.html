@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Absensi Modern</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -34,20 +35,29 @@
     </script>
 
     <style>
-        body { background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
-        
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
         /* Glassmorphism */
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .glass-card {
-            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
         }
-        .glass-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
+
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-2px);
+        }
 
         .text-gradient {
             background: linear-gradient(to right, #818cf8, #c084fc);
@@ -56,20 +66,58 @@
         }
 
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
 
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
         /* Toast */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 50; }
-        .toast { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
-        .toast.show { transform: translateX(0); }
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+
+        .toast {
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
     </style>
 </head>
+
 <body class="antialiased min-h-screen flex flex-col">
     <div id="toast-container" class="flex flex-col gap-3"></div>
     <div id="app" class="flex-grow flex flex-col"></div>
@@ -78,29 +126,45 @@
         // ==========================================
         // KONFIGURASI URL API (WAJIB DIISI)
         // ==========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec'; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec';
 
         // State Global
         let currentUser = null;
         let allUsersCache = []; // Cache data user dari Google Sheet
 
         // --- HELPER FUNCTIONS ---
-        
+
         // Fungsi Fetch Wrapper (Handle CORS & Error)
         async function callAppsScript(action, payload = {}) {
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
+                    // mode: 'cors', // Default is cors, ini penting agar bisa baca JSON response
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...payload, action })
+                    body: JSON.stringify({ action, ...payload })
                 });
-                
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const result = await response.json();
-                return result;
+
+                // Normalisasi Response (Kadang Apps Script membungkus result di 'data', kadang langsung)
+                // Sesuaikan dengan logika routeAction di backend
+                if (result.status === 'success' && result.data) {
+                    // Jika data dibungkus {status: success, data: { ... }}
+                    return result.data; // Return isinya (misal array users atau object result absen)
+                } else if (result.status === 'error') {
+                    return { status: 'error', message: result.message };
+                }
+
+                return result; // Default return
+
             } catch (error) {
                 console.error("API Error:", error);
                 showToast("Gagal terhubung ke Server!", "error");
-                return { status: 'error', message: error.toString() };
+                return null; // Return null jika error total
             }
         }
 
@@ -120,7 +184,7 @@
         function formatTanggalIndo(dateString) {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             // Cek apakah input string atau date object
-            const d = new Date(dateString); 
+            const d = new Date(dateString);
             return d.toLocaleDateString('id-ID', options);
         }
 
@@ -149,7 +213,7 @@
             e.preventDefault();
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
-            
+
             const btn = e.target.querySelector('button');
             const originalText = btn.innerText;
             btn.disabled = true;
@@ -188,9 +252,9 @@
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim...';
 
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0]; 
+            const dateStr = now.toISOString().split('T')[0];
             const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            
+
             const isLate = now.getHours() > 7 || (now.getHours() === 7 && now.getMinutes() > 30);
             const status = isLate ? 'Terlambat' : 'Hadir';
 
@@ -315,10 +379,10 @@
 
         async function renderDashboardAdmin() {
             // Ambil semua data untuk dashboard
-            const allData = await getRekapData('Admin'); 
+            const allData = await getRekapData('Admin');
             const today = new Date().toISOString().split('T')[0];
             const todayRecords = allData.filter(d => d.date.startsWith(today)); // Perbaikan filter tanggal (API returns string)
-            
+
             const hadir = todayRecords.length;
             const terlambat = todayRecords.filter(d => d.status === 'Terlambat').length;
             const tepatWaktu = hadir - terlambat;
@@ -330,7 +394,7 @@
                     <div class="glass-card p-6 rounded-2xl relative overflow-hidden group"><div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20"><i class="fa-solid fa-clock text-6xl text-yellow-500"></i></div><h3 class="text-slate-400 font-medium mb-1">Terlambat</h3><p class="text-4xl font-bold text-yellow-500">${terlambat}</p></div>
                     <div class="glass-card p-6 rounded-2xl relative overflow-hidden group"><div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20"><i class="fa-solid fa-check-circle text-6xl text-green-500"></i></div><h3 class="text-slate-400 font-medium mb-1">Tepat Waktu</h3><p class="text-4xl font-bold text-green-500">${tepatWaktu}</p></div>
                 </div>
-                <div class="glass-panel rounded-2xl p-6"><h3 class="text-lg font-bold mb-6">Aktivitas Terakhir</h3><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-4 py-3">Nama</th><th class="px-4 py-3">Waktu</th><th class="px-4 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${allData.slice(-5).reverse().map(r => `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3">${r.userName}</td><td class="px-4 py-3">${r.date} ${r.time}</td><td class="px-4 py-3"><span class="${r.status==='Terlambat'?'text-yellow-400':'text-green-400'}">${r.status}</span></td></tr>`).join('')}</tbody></table></div></div>
+                <div class="glass-panel rounded-2xl p-6"><h3 class="text-lg font-bold mb-6">Aktivitas Terakhir</h3><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-4 py-3">Nama</th><th class="px-4 py-3">Waktu</th><th class="px-4 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${allData.slice(-5).reverse().map(r => `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3">${r.userName}</td><td class="px-4 py-3">${r.date} ${r.time}</td><td class="px-4 py-3"><span class="${r.status === 'Terlambat' ? 'text-yellow-400' : 'text-green-400'}">${r.status}</span></td></tr>`).join('')}</tbody></table></div></div>
             `;
             renderLayout(html, 'dashboard');
         }
@@ -339,7 +403,7 @@
             const today = new Date().toISOString().split('T')[0];
             const period = getPayrollPeriod();
             const allData = await getRekapData('Guru', { userId: currentUser.id, startDate: period.start, endDate: period.end }); // Perlu logic hitung tanggal start/end di sini atau kirim raw date
-            
+
             // Logic periode 26-25
             const d = new Date();
             let start, end;
@@ -350,7 +414,7 @@
                 start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
                 end = new Date(d.getFullYear(), d.getMonth(), 25);
             }
-            
+
             // Ambil data history bulan ini
             const history = allData.filter(row => {
                 const rDate = new Date(row.date);
@@ -381,8 +445,8 @@
                     <div class="lg:col-span-2 space-y-6">
                         <div class="grid grid-cols-3 gap-4">
                             <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Hadir</p><p class="text-2xl font-bold mt-1">${history.length}</p></div>
-                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Tepat Waktu</p><p class="text-2xl font-bold text-green-400 mt-1">${history.filter(h=>h.status==='Hadir').length}</p></div>
-                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Terlambat</p><p class="text-2xl font-bold text-yellow-400 mt-1">${history.filter(h=>h.status==='Terlambat').length}</p></div>
+                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Tepat Waktu</p><p class="text-2xl font-bold text-green-400 mt-1">${history.filter(h => h.status === 'Hadir').length}</p></div>
+                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Terlambat</p><p class="text-2xl font-bold text-yellow-400 mt-1">${history.filter(h => h.status === 'Terlambat').length}</p></div>
                         </div>
                         <div class="glass-panel rounded-2xl overflow-hidden">
                              <div class="p-4 border-b border-slate-700/50"><h3 class="font-bold">Riwayat</h3></div>
@@ -394,18 +458,18 @@
                 </div>
             `;
             renderLayout(html, 'absensi');
-            
+
             setInterval(() => {
                 const now = new Date();
                 const clock = document.getElementById('liveClock');
-                if(clock) clock.innerText = now.toLocaleTimeString('id-ID');
+                if (clock) clock.innerText = now.toLocaleTimeString('id-ID');
             }, 1000);
         }
 
         async function renderRekap() {
             const isAdmin = currentUser.role === 'Admin';
             const period = getPayrollPeriod();
-            
+
             // Logic tanggal periode
             const d = new Date();
             let start, end;
@@ -418,10 +482,10 @@
             }
 
             // Fetch data
-            const rawData = await getRekapData(currentUser.role, { 
-                startDate: start.toISOString().split('T')[0], 
+            const rawData = await getRekapData(currentUser.role, {
+                startDate: start.toISOString().split('T')[0],
                 endDate: end.toISOString().split('T')[0],
-                userId: currentUser.id 
+                userId: currentUser.id
             });
 
             let tableContent = '';
@@ -439,11 +503,11 @@
                                 </thead>
                                 <tbody class="divide-y divide-slate-700/50">
                                     ${allUsersCache.filter(u => u.role === 'Guru').map(u => {
-                                        const uData = rawData.filter(d => d.userId == u.id);
-                                        const h = uData.length;
-                                        const t = uData.filter(d => d.status === 'Terlambat').length;
-                                        return `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3 font-medium">${u.name}</td><td class="px-4 py-3 text-center">${h}</td><td class="px-4 py-3 text-center text-green-400">${h-t}</td><td class="px-4 py-3 text-center text-yellow-400">${t}</td></tr>`;
-                                    }).join('')}
+                    const uData = rawData.filter(d => d.userId == u.id);
+                    const h = uData.length;
+                    const t = uData.filter(d => d.status === 'Terlambat').length;
+                    return `<tr class="hover:bg-slate-700/30"><td class="px-4 py-3 font-medium">${u.name}</td><td class="px-4 py-3 text-center">${h}</td><td class="px-4 py-3 text-center text-green-400">${h - t}</td><td class="px-4 py-3 text-center text-yellow-400">${t}</td></tr>`;
+                }).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -482,14 +546,14 @@
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
-        
+
         function filterTable() {
             const input = document.getElementById("searchGuru");
             const filter = input.value.toUpperCase();
             const table = document.querySelector("tbody");
             const tr = table.getElementsByTagName("tr");
             for (let i = 0; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td")[0]; 
+                const td = tr[i].getElementsByTagName("td")[0];
                 if (td) {
                     const txtValue = td.textContent || td.innerText;
                     tr[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
@@ -501,4 +565,5 @@
         window.addEventListener('load', initApp);
     </script>
 </body>
+
 </html>
