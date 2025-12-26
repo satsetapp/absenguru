@@ -4,16 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Absensi Modern</title>
-    
+   
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+   
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+   
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <!-- Konfigurasi Tailwind -->
     <script>
         tailwind.config = {
@@ -32,10 +31,9 @@
             }
         }
     </script>
-
     <style>
         body { background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
-        
+       
         /* Glassmorphism */
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
@@ -48,22 +46,18 @@
             transition: all 0.3s ease;
         }
         .glass-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
-
         .text-gradient {
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         /* Toast */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 50; }
         .toast { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
@@ -73,49 +67,41 @@
 <body class="antialiased min-h-screen flex flex-col">
     <div id="toast-container" class="flex flex-col gap-3"></div>
     <div id="app" class="flex-grow flex flex-col"></div>
-
     <script>
         // ==========================================
         // KONFIGURASI URL API (WAJIB DIISI!)
         // ==========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec'; 
-
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyCN6C7Sct0iCr5lVnqUy4HVdc6-ROc6xHoZ3Po38u77cwtTUPeiKWfd1M9OOwAxlrRuw/exec';
         // State Global
         let currentUser = null;
-        let allUsersCache = []; 
-
+        let allUsersCache = [];
         // --- HELPER FUNCTIONS ---
-        
+       
         // Fungsi Fetch dengan Validasi URL & CORS Fix
         async function callAppsScript(action, payload = {}) {
             if (!API_URL || API_URL.includes('PASTE_URL') || API_URL.includes('satsetapp.github.io')) {
                 console.error("URL API Error");
                 return null;
             }
-
             try {
                 let url = API_URL;
                 let options = {
-                    method: 'GET', 
-                    headers: { 'Content-Type': 'text/plain' }, 
+                    method: 'GET',
+                    headers: { 'Content-Type': 'text/plain' },
                     redirect: 'follow'
                 };
-
                 if (action === 'absen') {
                     options.method = 'POST';
                     options.body = JSON.stringify({ action, ...payload });
-                    options.mode = 'no-cors'; 
+                    options.mode = 'no-cors';
                 } else {
                     const params = new URLSearchParams({ action, ...payload }).toString();
                     url = `${API_URL}?${params}`;
                 }
-
                 const response = await fetch(url, options);
-
                 if (options.mode === 'no-cors') {
                     return { status: 'success', message: 'Terupload' };
                 }
-
                 const text = await response.text();
                 try {
                     const result = JSON.parse(text);
@@ -123,7 +109,6 @@
                 } catch (e) {
                     throw new Error("Respons Server Bukan JSON");
                 }
-
             } catch (error) {
                 console.error("API Error:", error);
                 if (error.message.includes("Failed to fetch")) {
@@ -134,35 +119,46 @@
                 return null;
             }
         }
-
-        function getPayrollPeriod(date = new Date()) {
+        function getPayrollPeriod(date = new Date(), monthOffset = 0) {
             const day = date.getDate();
-            let month = date.getMonth();
+            let month = date.getMonth() + monthOffset;
             let year = date.getFullYear();
-
-            if (day >= 26) {
-                month += 1;
-                if (month > 11) { month = 0; year += 1; }
+            if (month < 0) {
+                month += 12;
+                year -= 1;
+            } else if (month > 11) {
+                month -= 12;
+                year += 1;
             }
             const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
             return { year, month, periodName: `${monthNames[month]} ${year}`, monthIndex: month };
         }
-
+        function getPeriodDates(monthOffset = 0) {
+            const d = new Date();
+            d.setMonth(d.getMonth() + monthOffset);
+            const day = d.getDate();
+            let start, end;
+            if (day >= 26) {
+                start = new Date(d.getFullYear(), d.getMonth(), 26);
+                end = new Date(d.getFullYear(), d.getMonth() + 1, 25);
+            } else {
+                start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
+                end = new Date(d.getFullYear(), d.getMonth(), 25);
+            }
+            return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
+        }
         function formatTanggalIndo(dateString) {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const d = new Date(dateString); 
+            const d = new Date(dateString);
             return d.toLocaleDateString('id-ID', options);
         }
-
         // --- AUTHENTICATION ---
-
         async function initApp() {
             const session = localStorage.getItem('absensi_session');
             if (session) {
                 try {
                     currentUser = JSON.parse(session);
-                    // Fetch user list untuk kebutuhan dashboard (misal list guru)
-                    await fetchUsers(); 
+                    await fetchUsers();
                     renderApp();
                 } catch (e) {
                     localStorage.removeItem('absensi_session');
@@ -172,31 +168,26 @@
                 renderLogin();
             }
         }
-
         async function fetchUsers() {
             const res = await callAppsScript('getUsers');
             if (res && res.status === 'success') {
                 allUsersCache = res.data;
             } else if (Array.isArray(res)) {
-                allUsersCache = res; 
+                allUsersCache = res;
             } else {
                 allUsersCache = [];
             }
         }
-
         async function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('username').value.trim();
             const p = document.getElementById('password').value.trim();
-            
+           
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Memproses...';
-
-            // Fetch user dulu
             await fetchUsers();
-
             if (!u || !p) {
                 showToast('Username dan Password wajib diisi', 'error');
             } else {
@@ -205,26 +196,22 @@
                     localStorage.setItem('absensi_session', JSON.stringify(user));
                     currentUser = user;
                     showToast(`Selamat datang, ${user.name}!`, 'success');
-                    renderApp(); // Render app setelah login sukses
+                    renderApp();
                 } else {
                     showToast('Username atau password salah!', 'error');
                     document.getElementById('password').value = '';
                 }
             }
-
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
-
         function handleLogout() {
             localStorage.removeItem('absensi_session');
             currentUser = null;
             showToast('Anda telah logout.', 'success');
-            // Ubah hash secara manual agar browser pindah halaman tanpa reload
             window.history.pushState("", document.title, window.location.pathname + window.location.search);
             renderLogin();
         }
-
         // Toggle Password
         function togglePassword() {
             const passwordInput = document.getElementById('password');
@@ -239,21 +226,17 @@
                 toggleIcon.classList.add('fa-eye');
             }
         }
-
         // --- ABSENSI FEATURES ---
-
         async function handleAbsen() {
             const btn = document.getElementById('btnAbsen');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim...';
-
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0]; 
+            const dateStr = now.toISOString().split('T')[0];
             const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            
+           
             const isLate = now.getHours() > 7 || (now.getHours() === 7 && now.getMinutes() > 30);
             const status = isLate ? 'Terlambat' : 'Hadir';
-
             const payload = {
                 userId: currentUser.id,
                 userName: currentUser.name,
@@ -261,15 +244,12 @@
                 time: timeString,
                 status: status
             };
-
             const res = await callAppsScript('absen', payload);
-
             showToast(`Mencatat Absensi...`, 'success');
             setTimeout(() => {
                  renderAbsensiGuru();
             }, 1500);
         }
-
         async function getRekapData(role, params = {}) {
             const payload = {
                 role: role,
@@ -277,12 +257,9 @@
                 ...params
             };
             const res = await callAppsScript('getRekap', payload);
-            // Jika res null, return array kosong agar tidak crash saat mapping
             return (res && res.status === 'success') ? res.data : [];
         }
-
         // --- RENDER FUNCTIONS ---
-
         function renderLogin() {
             document.getElementById('app').innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -290,7 +267,6 @@
                         <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-primary rounded-full mix-blend-multiply filter blur-[120px] opacity-30 animate-pulse"></div>
                         <div class="absolute top-[20%] -right-[10%] w-[50%] h-[50%] bg-secondary rounded-full mix-blend-multiply filter blur-[120px] opacity-30"></div>
                     </div>
-
                     <div class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-md fade-in">
                         <div class="text-center mb-8">
                             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-secondary mb-4 shadow-lg shadow-primary/30">
@@ -324,7 +300,6 @@
             `;
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
         }
-
         function renderLayout(contentHTML, activeMenu) {
             const isMobile = window.innerWidth < 768;
             const sidebarHTML = `
@@ -358,7 +333,6 @@
             `;
             document.getElementById('app').innerHTML = sidebarHTML;
         }
-
         function generateMenuLink(id, label, icon, visible, isMobile = false) {
             if (!visible) return '';
             const active = window.location.hash === `#${id}`;
@@ -366,16 +340,14 @@
             const baseClass = isMobile ? `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}` : `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeClass}`;
             return `<a href="#${id}" class="${baseClass}"><i class="fa-solid ${icon} w-5 text-center"></i><span class="font-medium">${label}</span></a>`;
         }
-
         async function renderDashboardAdmin() {
-            const allData = await getRekapData('Admin'); 
+            const allData = await getRekapData('Admin', {}); // Ambil semua data tanpa filter tanggal
             const today = new Date().toISOString().split('T')[0];
-            const todayRecords = allData.filter(d => d.date.startsWith(today)); 
-            
+            const todayRecords = allData.filter(d => d.date.startsWith(today));
+           
             const hadir = todayRecords.length;
             const terlambat = todayRecords.filter(d => d.status === 'Terlambat').length;
             const tepatWaktu = hadir - terlambat;
-
             const html = `
                 <div class="mb-8"><h2 class="text-2xl font-bold text-white mb-1">Dashboard Admin</h2><p class="text-slate-400">Ringkasan statistik hari ini</p></div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -387,94 +359,54 @@
             `;
             renderLayout(html, 'dashboard');
         }
-
         async function renderAbsensiGuru() {
-            const today = new Date().toISOString().split('T')[0];
             const period = getPayrollPeriod();
-            
-            // Hitung tanggal start/end periode
-            const d = new Date();
-            let start, end;
-            if (d.getDate() >= 26) {
-                start = new Date(d.getFullYear(), d.getMonth(), 26);
-                end = new Date(d.getFullYear(), d.getMonth() + 1, 25);
-            } else {
-                start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
-                end = new Date(d.getFullYear(), d.getMonth(), 25);
-            }
-
-            const allData = await getRekapData('Guru', { 
-                userId: currentUser.id, 
-                startDate: start.toISOString().split('T')[0], 
-                endDate: end.toISOString().split('T')[0]
-            }); 
-            
-            const history = allData; // Sudah difilter di backend
+            const { start, end } = getPeriodDates();
+            const allData = await getRekapData('Guru', { startDate: start, endDate: end });
+            const today = new Date().toISOString().split('T')[0];
+            const history = allData;
             const userRecordToday = history.find(d => d.date === today);
             const hasAbsen = !!userRecordToday;
-
+            const statusText = hasAbsen ? userRecordToday.status : 'Belum Absen';
+            const statusColor = hasAbsen ? (userRecordToday.status === 'Terlambat' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500') : 'bg-slate-700/50 text-slate-400';
+            const statusIcon = hasAbsen ? 'fa-check' : 'fa-fingerprint';
+            const timeText = hasAbsen ? `<p class="text-sm text-white mt-1 bg-slate-700/50 inline-block px-3 py-1 rounded-full">${userRecordToday.time}</p>` : '';
             const html = `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div><h2 class="text-2xl font-bold text-white">Absensi Guru</h2><p class="text-slate-400">${formatTanggalIndo(new Date())}</p></div>
                     <div class="px-4 py-2 rounded-lg bg-primary/20 border border-primary/30 text-primary font-medium">Periode: ${period.periodName}</div>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1">
-                        <div class="glass-panel p-8 rounded-2xl text-center sticky top-24">
-                            <div class="mb-6">
-                                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full ${hasAbsen ? 'bg-green-500/20 text-green-500' : 'bg-slate-700/50 text-slate-400'} mb-4 transition-colors"><i class="fa-solid ${hasAbsen ? 'fa-check' : 'fa-fingerprint'} text-4xl"></i></div>
-                                <h3 class="text-xl font-bold mb-2">Status Hari Ini</h3>
-                                <p class="text-slate-400">${hasAbsen ? 'Anda sudah absen' : 'Anda belum absen'}</p>
-                                ${hasAbsen ? `<p class="text-sm text-white mt-1 bg-slate-700/50 inline-block px-3 py-1 rounded-full">${userRecordToday.time}</p>` : ''}
-                            </div>
-                            <button id="btnAbsen" onclick="handleAbsen()" ${hasAbsen ? 'disabled' : ''} class="w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform active:scale-95 ${hasAbsen ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-primary to-secondary hover:shadow-primary/40 text-white'}">${hasAbsen ? 'Sudah Absen' : 'Absen Sekarang'}</button>
-                            <p class="text-xs text-slate-500 mt-4">Jam: <span id="liveClock" class="text-primary font-mono">--:--:--</span></p>
-                        </div>
+                <div class="space-y-6">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Hadir</p><p class="text-2xl font-bold mt-1">${history.length}</p></div>
+                        <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Tepat Waktu</p><p class="text-2xl font-bold text-green-400 mt-1">${history.filter(h=>h.status==='Hadir').length}</p></div>
+                        <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Terlambat</p><p class="text-2xl font-bold text-yellow-400 mt-1">${history.filter(h=>h.status==='Terlambat').length}</p></div>
                     </div>
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Hadir</p><p class="text-2xl font-bold mt-1">${history.length}</p></div>
-                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Tepat Waktu</p><p class="text-2xl font-bold text-green-400 mt-1">${history.filter(h=>h.status==='Hadir').length}</p></div>
-                            <div class="glass-card p-4 rounded-xl text-center"><p class="text-slate-400 text-xs">Terlambat</p><p class="text-2xl font-bold text-yellow-400 mt-1">${history.filter(h=>h.status==='Terlambat').length}</p></div>
+                    <div class="glass-panel p-8 rounded-2xl text-center">
+                        <div class="mb-6">
+                            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full ${statusColor} mb-4 transition-colors"><i class="fa-solid ${statusIcon} text-4xl"></i></div>
+                            <h3 class="text-xl font-bold mb-2">Status Hari Ini</h3>
+                            <p class="text-slate-400">${statusText}</p>
+                            ${timeText}
                         </div>
-                        <div class="glass-panel rounded-2xl overflow-hidden">
-                             <div class="p-4 border-b border-slate-700/50"><h3 class="font-bold">Riwayat</h3></div>
-                             <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-6 py-3">Tanggal</th><th class="px-6 py-3">Jam</th><th class="px-6 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">
-                                ${history.length > 0 ? history.map(row => `<tr class="hover:bg-slate-700/30"><td class="px-6 py-3">${formatTanggalIndo(row.date)}</td><td class="px-6 py-3">${row.time}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${row.status}</span></td></tr>`).join('') : '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Belum ada data.</td></tr>'}
-                             </tbody></table></div>
-                        </div>
+                        <button id="btnAbsen" onclick="handleAbsen()" ${hasAbsen ? 'disabled' : ''} class="w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform active:scale-95 ${hasAbsen ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-primary to-secondary hover:shadow-primary/40 text-white'}">${hasAbsen ? 'Sudah Absen' : 'Absen Sekarang'}</button>
+                        <p class="text-xs text-slate-500 mt-4">Jam: <span id="liveClock" class="text-primary font-mono">--:--:--</span></p>
                     </div>
                 </div>
             `;
             renderLayout(html, 'absensi');
-            
             setInterval(() => {
                 const now = new Date();
                 const clock = document.getElementById('liveClock');
                 if(clock) clock.innerText = now.toLocaleTimeString('id-ID');
             }, 1000);
         }
-
         async function renderRekap() {
             const isAdmin = currentUser.role === 'Admin';
-            const period = getPayrollPeriod();
-            
-            const d = new Date();
-            let start, end;
-            if (d.getDate() >= 26) {
-                start = new Date(d.getFullYear(), d.getMonth(), 26);
-                end = new Date(d.getFullYear(), d.getMonth() + 1, 25);
-            } else {
-                start = new Date(d.getFullYear(), d.getMonth() - 1, 26);
-                end = new Date(d.getFullYear(), d.getMonth(), 25);
-            }
-
-            const rawData = await getRekapData(currentUser.role, { 
-                startDate: start.toISOString().split('T')[0], 
-                endDate: end.toISOString().split('T')[0],
-                userId: currentUser.id 
-            });
-
+            let selectedMonthOffset = 0; // Default current period
+            const period = getPayrollPeriod(new Date(), selectedMonthOffset);
+            const { start, end } = getPeriodDates(selectedMonthOffset);
+            const rawData = await getRekapData(currentUser.role, { startDate: start, endDate: end });
             let tableContent = '';
             if (isAdmin) {
                 tableContent = `
@@ -502,46 +434,57 @@
                 `;
             } else {
                 tableContent = `
-                    <div class="glass-panel rounded-2xl p-6"><h3 class="text-xl font-bold mb-6">Rekap Saya: ${period.periodName}</h3>
-                    <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-6 py-3">Tanggal</th><th class="px-6 py-3">Jam</th><th class="px-6 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${rawData.map(row => `<tr class="hover:bg-slate-700/30"><td class="px-6 py-3">${formatTanggalIndo(row.date)}</td><td class="px-6 py-3">${row.time}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${row.status}</span></td></tr>`).join('')}</tbody></table></div>
+                    <div class="glass-panel rounded-2xl p-6">
+                        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                            <h3 class="text-xl font-bold">Rekap Saya</h3>
+                            <select id="monthSelect" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-primary w-full md:w-auto">
+                                <option value="0">Bulan Ini (${period.periodName})</option>
+                                <option value="-1">Bulan Lalu</option>
+                                <option value="-2">2 Bulan Lalu</option>
+                                <!-- Tambah opsi lain jika perlu -->
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-slate-400 uppercase bg-slate-800/50"><tr><th class="px-6 py-3">Tanggal</th><th class="px-6 py-3">Jam</th><th class="px-6 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-700/50">${rawData.map(row => `<tr class="hover:bg-slate-700/30"><td class="px-6 py-3">${formatTanggalIndo(row.date)}</td><td class="px-6 py-3">${row.time}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${row.status}</span></td></tr>`).join('')}</tbody></table></div>
+                    </div>
                 `;
             }
-
             const html = `<div class="mb-6"><h2 class="text-2xl font-bold text-white">Data Rekapitulasi</h2></div>${tableContent}`;
             renderLayout(html, 'rekap');
+            if (!isAdmin) {
+                document.getElementById('monthSelect').addEventListener('change', async (e) => {
+                    selectedMonthOffset = parseInt(e.target.value);
+                    const { start, end } = getPeriodDates(selectedMonthOffset);
+                    const newData = await getRekapData(currentUser.role, { startDate: start, endDate: end });
+                    // Update table
+                    const tbody = document.querySelector('tbody');
+                    tbody.innerHTML = newData.map(row => `<tr class="hover:bg-slate-700/30"><td class="px-6 py-3">${formatTanggalIndo(row.date)}</td><td class="px-6 py-3">${row.time}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${row.status}</span></td></tr>`).join('');
+                });
+            }
         }
-
         // RENDER UTAMA (ROUTING)
         function renderApp() {
-            // 1. Cek Login
             if (!currentUser) {
                 renderLogin();
                 return;
             }
-
-            // 2. Tentukan Halaman
             const hash = window.location.hash.replace('#', '') || 'dashboard';
             const role = currentUser.role;
-
-            // 3. Routing Logic (PENTING: Jangan ubah window.location.hash di sini)
             if (hash === 'dashboard') {
                 if (role === 'Admin') renderDashboardAdmin();
-                else renderAbsensiGuru(); // Jika Guru buka dashboard, tampilkan absensi
-            } 
+                else renderAbsensiGuru();
+            }
             else if (hash === 'absensi') {
                 if (role === 'Guru') renderAbsensiGuru();
-                else renderDashboardAdmin(); // Jika Admin buka absensi, tampilkan dashboard
+                else renderDashboardAdmin();
             }
             else if (hash === 'rekap') {
-                renderRekap(); // Rekap bisa diakses Admin & Guru
+                renderRekap();
             }
             else {
-                // Default fallback
                 if (role === 'Admin') renderDashboardAdmin();
                 else renderAbsensiGuru();
             }
         }
-
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -553,21 +496,20 @@
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
-        
+       
         function filterTable() {
             const input = document.getElementById("searchGuru");
             const filter = input.value.toUpperCase();
             const table = document.querySelector("tbody");
             const tr = table.getElementsByTagName("tr");
             for (let i = 0; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td")[0]; 
+                const td = tr[i].getElementsByTagName("td")[0];
                 if (td) {
                     const txtValue = td.textContent || td.innerText;
                     tr[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
                 }
             }
         }
-
         window.addEventListener('hashchange', renderApp);
         window.addEventListener('load', initApp);
     </script>
