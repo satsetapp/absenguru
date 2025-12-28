@@ -13,8 +13,8 @@
     <meta property="og:description"
         content="Aplikasi absensi guru berbasis web dengan sistem kalender kerja fleksibel. Cepat, modern, dan responsif untuk HP & Laptop.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://satsetapp.github.io/absenguru/">
-    <meta property="og:image" content="https://satsetapp.github.io/absenguru/logo.png">
+    <meta property="og:url" content="https://satsetapp.github.io/absenguru.zai/">
+    <meta property="og:image" content="https://satsetapp.github.io/absenguru.zai/logo.png">
 
     <!-- Optional tapi disarankan -->
     <meta property="og:site_name" content="E-Absensi Guru v7.3">
@@ -336,10 +336,8 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(4px);
-            z-index: 9999;
-            /* PERBAIKAN: Naikkan z-index */
-            display: flex;
-            /* PERBAIKAN: Gunakan flex untuk centering */
+            z-index: 9999; /* PERBAIKAN: Naikkan z-index */
+            display: flex; /* PERBAIKAN: Gunakan flex untuk centering */
             align-items: center;
             justify-content: center;
             padding: 20px;
@@ -359,22 +357,6 @@
             pointer-events: auto !important;
             position: relative;
             z-index: 1;
-        }
-
-        /* PERBAIKAN: Style untuk hari terlewat */
-        .day-missed {
-            background: rgba(30, 41, 59, 0.3) !important;
-            /* Background lebih gelap/transparan */
-            border: 1px solid rgba(148, 163, 184, 0.3) !important;
-            /* Border abu-abu tipis */
-            color: #94a3b8 !important;
-            /* Warna teks abu-abu */
-        }
-
-        /* Pastikan hover effect tetap ada */
-        .day-missed:hover {
-            background: rgba(30, 41, 59, 0.5) !important;
-            border-color: rgba(148, 163, 184, 0.5) !important;
         }
     </style>
 </head>
@@ -1036,11 +1018,11 @@
         let currentUser = null;
         let attendanceData = [];
         let calendarData = null;
-
+        
         // PERBAIKAN: Default kalender berdasarkan tanggal hari ini
         const today = new Date();
         const currentDay = today.getDate();
-
+        
         // Tentukan bulan default berdasarkan sistem cutoff
         if (currentDay > CUTOFF_DATE) {
             // Jika tanggal > 25, tampilkan bulan selanjutnya
@@ -1064,7 +1046,7 @@
         };
 
         let deferredPrompt;
-
+        
         // PERBAIKAN 1: Flag untuk tracking apakah holiday settings sudah di-load
         let holidaySettingsLoaded = false;
 
@@ -1081,7 +1063,7 @@
                 e.preventDefault();
                 deferredPrompt = e;
                 showInstallButton();
-
+                
                 // Simpan event untuk digunakan nanti
                 window.deferredPrompt = e;
             });
@@ -1092,7 +1074,7 @@
                 hideInstallButton();
                 window.deferredPrompt = null;
             });
-
+            
             // PERBAIKAN: Tambah event listener untuk modal overlay
             setupModalClickListeners();
         });
@@ -1101,7 +1083,7 @@
         function setupModalClickListeners() {
             // Tutup modal ketika klik di luar konten
             document.querySelectorAll('.modal-overlay').forEach(modal => {
-                modal.addEventListener('click', function (e) {
+                modal.addEventListener('click', function(e) {
                     if (e.target === this) {
                         // Tutup modal berdasarkan ID
                         if (this.id === 'logout-modal') {
@@ -1139,7 +1121,7 @@
                     showToast('Aplikasi sudah terinstall', 'info');
                     return;
                 }
-
+                
                 // Coba trigger prompt secara manual
                 showToast('Tekan menu browser dan pilih "Add to Home Screen"', 'info');
                 return;
@@ -1147,7 +1129,7 @@
 
             deferredPrompt.prompt();
             const choiceResult = await deferredPrompt.userChoice;
-
+            
             if (choiceResult.outcome === 'accepted') {
                 console.log('User accepted the install prompt');
                 showToast('Aplikasi berhasil diinstall!', 'success');
@@ -1156,7 +1138,7 @@
                 console.log('User dismissed the install prompt');
                 showToast('Installasi dibatalkan', 'info');
             }
-
+            
             deferredPrompt = null;
         }
 
@@ -1164,7 +1146,7 @@
             // Cek apakah sudah standalone (sudah diinstall)
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
+            
             if (isStandalone) {
                 console.log('Running as PWA (standalone)');
                 hideInstallButton();
@@ -1228,59 +1210,59 @@
                 renderAdditionalHolidaysList();
                 return;
             }
-
+            
             toggleLoading(true, 'Memuat pengaturan libur...');
-
+            
             fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({
-                    action: 'get_holiday_settings',
-                    username: currentUser.username
+                body: JSON.stringify({ 
+                    action: 'get_holiday_settings', 
+                    username: currentUser.username 
                 })
             })
-                .then(res => res.json())
-                .then(result => {
-                    console.log("Load settings response:", result);
-
-                    if (result.status === 'success' && result.settings) {
-                        holidaySettings = result.settings;
+            .then(res => res.json())
+            .then(result => {
+                console.log("Load settings response:", result);
+                
+                if (result.status === 'success' && result.settings) {
+                    holidaySettings = result.settings;
+                    holidaySettingsLoaded = true; // Tandai sudah di-load
+                    console.log("Loaded settings from database:", holidaySettings);
+                } else {
+                    // Default settings - TIDAK ADA LIBUR OPTIONAL DEFAULT
+                    holidaySettings = {
+                        additionalHolidays: [],
+                        optionalDays: []
+                    };
+                    holidaySettingsLoaded = true; // Tandai sudah di-load
+                    console.log("Using default settings");
+                }
+                
+                // Render UI
+                renderOptionalDays();
+                renderAdditionalHolidaysList();
+            })
+            .catch(error => {
+                console.error('Error loading holiday settings:', error);
+                // Fallback to localStorage
+                const saved = localStorage.getItem('holiday_settings_v7_3');
+                if (saved) {
+                    try {
+                        holidaySettings = JSON.parse(saved);
                         holidaySettingsLoaded = true; // Tandai sudah di-load
-                        console.log("Loaded settings from database:", holidaySettings);
-                    } else {
-                        // Default settings - TIDAK ADA LIBUR OPTIONAL DEFAULT
+                        console.log("Loaded from localStorage:", holidaySettings);
+                    } catch (e) {
                         holidaySettings = {
                             additionalHolidays: [],
                             optionalDays: []
                         };
                         holidaySettingsLoaded = true; // Tandai sudah di-load
-                        console.log("Using default settings");
                     }
-
-                    // Render UI
-                    renderOptionalDays();
-                    renderAdditionalHolidaysList();
-                })
-                .catch(error => {
-                    console.error('Error loading holiday settings:', error);
-                    // Fallback to localStorage
-                    const saved = localStorage.getItem('holiday_settings_v7_3');
-                    if (saved) {
-                        try {
-                            holidaySettings = JSON.parse(saved);
-                            holidaySettingsLoaded = true; // Tandai sudah di-load
-                            console.log("Loaded from localStorage:", holidaySettings);
-                        } catch (e) {
-                            holidaySettings = {
-                                additionalHolidays: [],
-                                optionalDays: []
-                            };
-                            holidaySettingsLoaded = true; // Tandai sudah di-load
-                        }
-                    }
-                })
-                .finally(() => {
-                    toggleLoading(false);
-                });
+                }
+            })
+            .finally(() => {
+                toggleLoading(false);
+            });
         }
 
         // PERBAIKAN 1: Fungsi untuk load holiday settings sekali saat login
@@ -1289,19 +1271,19 @@
                 console.log("Holiday settings already loaded, skipping...");
                 return;
             }
-
+            
             try {
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        action: 'get_holiday_settings',
-                        username: currentUser.username
+                    body: JSON.stringify({ 
+                        action: 'get_holiday_settings', 
+                        username: currentUser.username 
                     })
                 });
-
+                
                 const result = await res.json();
                 console.log("Initial load settings response:", result);
-
+                
                 if (result.status === 'success' && result.settings) {
                     holidaySettings = result.settings;
                     holidaySettingsLoaded = true;
@@ -1334,9 +1316,9 @@
         // PERBAIKAN 1: Fungsi save yang lebih efisien
         async function saveHolidaySettings() {
             toggleLoading(true, 'Menyimpan pengaturan...');
-
+            
             console.log("Saving settings:", holidaySettings);
-
+            
             try {
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
@@ -1347,17 +1329,17 @@
                         settings: holidaySettings
                     })
                 });
-
+                
                 const result = await res.json();
                 console.log("Save settings response:", result);
-
+                
                 if (result.status === 'success') {
                     // Also save to localStorage as backup
                     localStorage.setItem('holiday_settings_v7_3', JSON.stringify(holidaySettings));
-
+                    
                     showToast('Pengaturan libur berhasil disimpan ke database', 'success');
                     closeHolidaySettings();
-
+                    
                     // PERBAIKAN: Hanya load calendar, TIDAK load holiday settings lagi
                     console.log("Reloading calendar after save...");
                     loadCalendar();
@@ -1370,7 +1352,7 @@
                 localStorage.setItem('holiday_settings_v7_3', JSON.stringify(holidaySettings));
                 showToast('Pengaturan disimpan ke penyimpanan lokal', 'warning');
                 closeHolidaySettings();
-
+                
                 // PERBAIKAN: Hanya load calendar, TIDAK load holiday settings lagi
                 console.log("Reloading calendar after local save...");
                 loadCalendar();
@@ -1382,11 +1364,11 @@
         // PERBAIKAN 1: Fungsi open holiday settings yang tidak load ulang
         function openHolidaySettings() {
             console.log("Opening holiday settings modal");
-
+            
             // Hanya render UI dari data yang sudah ada, TIDAK load ulang dari database
             renderOptionalDays();
             renderAdditionalHolidaysList();
-
+            
             const modal = document.getElementById('holiday-settings-modal');
             modal.classList.remove('hidden');
             modal.style.display = 'flex'; // PERBAIKAN: Gunakan flex
@@ -1533,7 +1515,7 @@
 
                 // PERBAIKAN 1: Load holiday settings sekali saat login
                 loadHolidaySettingsOnce();
-
+                
                 // Cek status PWA
                 checkPWAStatus();
 
@@ -1780,7 +1762,6 @@
         }
 
         // --- CALENDAR FUNCTIONS ---
-        // --- CALENDAR FUNCTIONS ---
         function loadCalendar() {
             if (!currentUser) return;
 
@@ -1788,7 +1769,7 @@
 
             // Tentukan bulan yang akan ditampilkan berdasarkan currentCalendarMonth dan currentCalendarYear
             const targetDate = new Date(currentCalendarYear, currentCalendarMonth - 1, 1);
-
+            
             // GENERATE PERIODE CUTOFF berdasarkan bulan yang dipilih
             const currentDay = targetDate.getDate();
             const currentMonth = targetDate.getMonth();
@@ -1835,7 +1816,7 @@
             let fridayDays = 0;
             let totalCanAttend = 0;
             let attendedDays = 0;
-
+            
             // PERBAIKAN 2: Hitung hari yang sudah lewat dari tanggal hari ini
             let daysPassed = 0;
             let daysCanAttendPassed = 0;
@@ -1852,14 +1833,10 @@
                 const isToday = dateStr === todayStr;
                 const hasAttended = attendanceData.some(d => d.date === dateStr && d.category === 'Hadir');
 
-                // PERBAIKAN: Cek apakah hari sudah lewat
-                const isPast = new Date(dateStr) < today;
-
                 // Tentukan jenis hari berdasarkan sistem baru
                 let dayType = '';
                 let dayColor = '';
                 let canAttend = false;
-                let isMissed = false; // PERBAIKAN: Flag untuk hari yang terlewat
 
                 // Cek apakah hari ini libur khusus (TIDAK BISA ABSEN)
                 const isAdditionalHoliday = holidaySettings.additionalHolidays.some(h => h.date === dateStr);
@@ -1892,12 +1869,6 @@
                     mandatoryWorkingDays++;
                 }
 
-                // PERBAIKAN: Cek apakah hari sudah lewat dan belum absen
-                if (isPast && canAttend && !hasAttended) {
-                    isMissed = true; // Hari terlewat dan belum absen
-                    dayType = 'missed'; // Type baru untuk hari terlewat
-                }
-
                 if (canAttend) {
                     totalCanAttend++;
                 }
@@ -1905,7 +1876,7 @@
                 if (hasAttended) {
                     attendedDays++;
                 }
-
+                
                 // PERBAIKAN 2: Hitung hari yang sudah lewat
                 const currentDate = new Date(dateStr);
                 if (currentDate < today) {
@@ -1930,8 +1901,7 @@
                     isAdditionalHoliday: isAdditionalHoliday,
                     isOptionalHoliday: isOptionalHoliday,
                     attendanceData: attendanceData.find(d => d.date === dateStr),
-                    isPast: isPast,
-                    isMissed: isMissed // PERBAIKAN: Tambah flag isMissed
+                    isPast: currentDate < today
                 });
 
                 current.setDate(current.getDate() + 1);
@@ -1940,7 +1910,7 @@
             // Hitung progress
             const progressPercent = TARGET_MINIMUM_DAYS > 0 ?
                 Math.min(100, Math.round((attendedDays / TARGET_MINIMUM_DAYS) * 100)) : 0;
-
+                
             // PERBAIKAN 2: Hitung sisa kesempatan absen
             // Sisa kesempatan = total hari yang bisa absen - hari yang sudah lewat (yang bisa absen) - sudah hadir
             const remainingOpportunity = Math.max(0, totalCanAttend - daysCanAttendPassed - attendedDays);
@@ -2009,7 +1979,7 @@
             calendarData.days.forEach(day => {
                 const dayElement = document.createElement('div');
                 const todayClass = day.isToday ? 'day-today' : '';
-
+                
                 dayElement.className = `calendar-day rounded-lg flex flex-col p-2 cursor-pointer transition-all ${getDayClass(day)} ${todayClass} animate-fadeIn`;
 
                 // Add attendance indicator
@@ -2026,58 +1996,37 @@
                     holidayIcon = '<div class="absolute top-1 left-1 text-[10px] text-orange-400">○</div>';
                 }
 
-                // PERBAIKAN: Determine day text berdasarkan status
+                // Determine day text
                 let dayText = '';
-                let dayTextColor = '';
-
                 if (day.hasAttended) {
-                    dayText = '✓ Hadir';
-                    dayTextColor = 'text-green-400';
+                    dayText = '<div class="mt-auto text-[10px] text-green-400 font-medium">✓ Hadir</div>';
                 } else if (day.isAdditionalHoliday) {
-                    dayText = 'Libur Khusus';
-                    dayTextColor = 'text-red-400';
+                    dayText = '<div class="mt-auto text-[10px] text-red-400">Libur Khusus</div>';
                 } else if (day.isOptionalHoliday) {
                     const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-                    dayText = `Libur ${dayNames[day.dayOfWeek]}`;
-                    dayTextColor = 'text-orange-400';
+                    dayText = `<div class="mt-auto text-[10px] text-orange-400">Libur ${dayNames[day.dayOfWeek]}</div>`;
                 } else if (day.dayOfWeek === 5) { // Jumat
-                    dayText = 'Libur Wajib';
-                    dayTextColor = 'text-red-400';
-                } else if (day.isMissed) {
-                    // PERBAIKAN: Hari terlewat dan belum absen
-                    dayText = 'Tidak Absen';
-                    dayTextColor = 'text-slate-400';
+                    dayText = '<div class="mt-auto text-[10px] text-red-400">Libur Wajib</div>';
                 } else {
-                    dayText = 'Bisa Absen';
-                    dayTextColor = 'text-green-400';
+                    dayText = '<div class="mt-auto text-[10px] text-green-400">Bisa Absen</div>';
                 }
 
-                // PERBAIKAN: Determine number color
-                let numberClass = '';
-                if (day.isToday) {
-                    numberClass = 'text-white font-bold';
-                } else if (day.hasAttended) {
-                    numberClass = 'text-white';
-                } else if (day.isMissed) {
-                    // PERBAIKAN: Hari terlewat - angka abu-abu
-                    numberClass = 'text-slate-300';
-                } else {
-                    numberClass = 'text-slate-300';
-                }
-
+                // Angka hari ini tanpa class day-today
+                const numberClass = day.isToday ? 'text-white font-bold' : (day.hasAttended ? 'text-white' : 'text-slate-300');
+                
                 dayElement.innerHTML = `
-            <div class="relative">
-                ${attendanceBadge}
-                ${holidayIcon}
-                <div class="text-xs ${day.dayColor === 'red' ? 'text-red-400' : day.dayColor === 'orange' ? 'text-orange-400' : 'text-slate-400'} mb-1">
-                    ${day.dayName.substring(0, 3)}
-                </div>
-                <div class="text-lg font-bold ${numberClass}">
-                    ${day.dateNum}
-                </div>
-            </div>
-            <div class="mt-auto text-[10px] ${dayTextColor}">${dayText}</div>
-        `;
+                    <div class="relative">
+                        ${attendanceBadge}
+                        ${holidayIcon}
+                        <div class="text-xs ${day.dayColor === 'red' ? 'text-red-400' : day.dayColor === 'orange' ? 'text-orange-400' : 'text-slate-400'} mb-1">
+                            ${day.dayName.substring(0, 3)}
+                        </div>
+                        <div class="text-lg font-bold ${numberClass}">
+                            ${day.dateNum}
+                        </div>
+                    </div>
+                    ${dayText}
+                `;
 
                 grid.appendChild(dayElement);
             });
@@ -2085,13 +2034,8 @@
 
         function getDayClass(day) {
             let baseClass = '';
-
-            // PERBAIKAN: Urutan pengecekan penting
             if (day.hasAttended) {
                 baseClass = 'day-attended';
-            } else if (day.isMissed) {
-                // PERBAIKAN: Hari terlewat dan belum absen - warna outline saja
-                baseClass = 'day-missed';
             } else if (day.dayType === 'mandatory-off') {
                 baseClass = 'day-mandatory-off';
             } else if (day.dayType === 'optional-off') {
@@ -2115,10 +2059,10 @@
             document.getElementById('stat-can-attend').textContent = stats.totalCanAttend;
             document.getElementById('stat-total-attended').textContent = stats.attendedDays;
             document.getElementById('stat-attended-days').textContent = stats.attendedDays;
-
+            
             // PERBAIKAN 2: Ganti "Belum Hadir" menjadi "Sisa Kesempatan Absen"
             document.getElementById('stat-not-attended').textContent = stats.remainingOpportunity;
-
+            
             document.getElementById('stat-remaining-target').textContent = stats.remainingTarget;
 
             // PERBAIKAN 2: Update tooltip atau penjelasan
