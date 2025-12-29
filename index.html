@@ -694,6 +694,7 @@
                     <!-- STATISTIK UTAMA -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- STATISTIK HARI -->
+                        
                         <div class="glass-panel p-5 rounded-xl">
                             <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Statistik Hari
                             </h4>
@@ -702,6 +703,9 @@
                                     <span class="text-slate-300">Total Hari</span>
                                     <span class="font-bold text-white" id="stat-total-days">31</span>
                                 </div>
+
+                                <!-- TAMBAHKAN BARIS INI: Total Wajib Absen -->
+
                                 <div class="flex justify-between items-center">
                                     <span class="text-slate-300">Hari Kerja Wajib</span>
                                     <span class="font-bold text-green-400" id="stat-mandatory-working">16</span>
@@ -1781,6 +1785,7 @@
 
         // --- CALENDAR FUNCTIONS ---
         // --- CALENDAR FUNCTIONS ---
+        // --- CALENDAR FUNCTIONS ---
         function loadCalendar() {
             if (!currentUser) return;
 
@@ -1833,7 +1838,7 @@
             let mandatoryWorkingDays = 0; // HANYA hari kerja biasa (BUKAN libur optional)
             let optionalOffDays = 0;
             let fridayDays = 0;
-            let totalCanAttend = 0;
+            let totalCanAttend = 0; // ← DEKLARASI DI SINI
             let attendedDays = 0;
 
             // PERBAIKAN 2: Hitung hari yang sudah lewat dari tanggal hari ini
@@ -1853,7 +1858,7 @@
                 const hasAttended = attendanceData.some(d => d.date === dateStr && d.category === 'Hadir');
 
                 // PERBAIKAN: Cek apakah hari sudah lewat
-                const isPast = new Date(dateStr) < today;
+                const isPast = new Date(dateStr) <= today;
 
                 // Tentukan jenis hari berdasarkan sistem baru
                 let dayType = '';
@@ -1893,7 +1898,7 @@
                 }
 
                 if (canAttend) {
-                    totalCanAttend++;
+                    totalCanAttend++; // ← PENAMBAHAN NILAI DI SINI
                 }
 
                 if (hasAttended) {
@@ -1938,7 +1943,7 @@
             }
 
             // PERBAIKAN: Total Bisa Absen = mandatoryWorkingDays + optionalOffDays
-
+            totalCanAttend = mandatoryWorkingDays + optionalOffDays; // ← PERBAIKAN: HAPUS 'const'
 
             // Hitung progress
             const progressPercent = TARGET_MINIMUM_DAYS > 0 ?
@@ -1956,17 +1961,19 @@
                 },
                 stats: {
                     totalDays: totalDays,
-                    mandatoryWorkingDays: mandatoryWorkingDays, // HANYA hari kerja biasa
+                    mandatoryWorkingDays: mandatoryWorkingDays,
                     optionalOffDays: optionalOffDays,
                     fridayDays: fridayDays,
-                    totalCanAttend: totalCanAttend, // mandatoryWorkingDays + optionalOffDays
+                    totalCanAttend: totalCanAttend,
                     attendedDays: attendedDays,
                     progressPercent: progressPercent,
                     remainingTarget: Math.max(0, TARGET_MINIMUM_DAYS - attendedDays),
                     notAttendedDays: Math.max(0, totalCanAttend - attendedDays),
                     daysPassed: daysPassed,
                     daysCanAttendPassed: daysCanAttendPassed,
-                    remainingOpportunity: remainingOpportunity
+                    remainingOpportunity: remainingOpportunity,
+                    // TAMBAHKAN INI: target wajib absen
+                    targetMandatoryAttendance: TARGET_MINIMUM_DAYS
                 },
                 days: calendarDays
             };
@@ -2111,6 +2118,12 @@
 
             // Update statistic displays
             document.getElementById('stat-total-days').textContent = stats.totalDays;
+
+            // TAMBAHKAN: Total Wajib Absen (target minimal 20 hari)
+            if (document.getElementById('stat-mandatory-attendance')) {
+                document.getElementById('stat-mandatory-attendance').textContent = TARGET_MINIMUM_DAYS + ' hari';
+            }
+
             document.getElementById('stat-mandatory-working').textContent = stats.mandatoryWorkingDays;
             document.getElementById('stat-optional-off').textContent = stats.optionalOffDays;
             document.getElementById('stat-can-attend').textContent = stats.totalCanAttend;
@@ -2127,7 +2140,6 @@
             const descriptionElement = statNotAttendedElement.querySelector('p.text-xs');
             if (descriptionElement) {
                 descriptionElement.textContent = 'Sisa Kesempatan Absen';
-                // Tambah tooltip kecil
                 descriptionElement.title = 'Sisa hari yang masih bisa digunakan untuk absen';
             }
 
