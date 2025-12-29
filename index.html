@@ -1830,7 +1830,7 @@
             const todayStr = formatDate(today);
 
             let totalDays = 0;
-            let mandatoryWorkingDays = 0;
+            let mandatoryWorkingDays = 0; // HANYA hari kerja biasa (BUKAN libur optional)
             let optionalOffDays = 0;
             let fridayDays = 0;
             let totalCanAttend = 0;
@@ -1859,7 +1859,7 @@
                 let dayType = '';
                 let dayColor = '';
                 let canAttend = false;
-                let isMissed = false; // PERBAIKAN: Flag untuk hari yang terlewat
+                let isMissed = false;
 
                 // Cek apakah hari ini libur khusus (TIDAK BISA ABSEN)
                 const isAdditionalHoliday = holidaySettings.additionalHolidays.some(h => h.date === dateStr);
@@ -1883,19 +1883,13 @@
                     dayColor = 'orange';
                     canAttend = true; // BOLEH ABSEN
                     optionalOffDays++;
-                    mandatoryWorkingDays++;
+                    // PERBAIKAN: TIDAK ditambahkan ke mandatoryWorkingDays
                 } else {
                     // Hari kerja biasa (BISA ABSEN)
                     dayType = 'working';
                     dayColor = 'green';
                     canAttend = true;
-                    mandatoryWorkingDays++;
-                }
-
-                // PERBAIKAN: Cek apakah hari sudah lewat dan belum absen
-                if (isPast && canAttend && !hasAttended) {
-                    isMissed = true; // Hari terlewat dan belum absen
-                    dayType = 'missed'; // Type baru untuk hari terlewat
+                    mandatoryWorkingDays++; // HANYA di sini dihitung
                 }
 
                 if (canAttend) {
@@ -1915,6 +1909,12 @@
                     }
                 }
 
+                // PERBAIKAN: Cek apakah hari sudah lewat dan belum absen
+                if (isPast && canAttend && !hasAttended) {
+                    isMissed = true;
+                    dayType = 'missed';
+                }
+
                 calendarDays.push({
                     date: dateStr,
                     dayName: dayName,
@@ -1931,18 +1931,20 @@
                     isOptionalHoliday: isOptionalHoliday,
                     attendanceData: attendanceData.find(d => d.date === dateStr),
                     isPast: isPast,
-                    isMissed: isMissed // PERBAIKAN: Tambah flag isMissed
+                    isMissed: isMissed
                 });
 
                 current.setDate(current.getDate() + 1);
             }
+
+            // PERBAIKAN: Total Bisa Absen = mandatoryWorkingDays + optionalOffDays
+
 
             // Hitung progress
             const progressPercent = TARGET_MINIMUM_DAYS > 0 ?
                 Math.min(100, Math.round((attendedDays / TARGET_MINIMUM_DAYS) * 100)) : 0;
 
             // PERBAIKAN 2: Hitung sisa kesempatan absen
-            // Sisa kesempatan = total hari yang bisa absen - hari yang sudah lewat (yang bisa absen) - sudah hadir
             const remainingOpportunity = Math.max(0, totalCanAttend - daysCanAttendPassed - attendedDays);
 
             return {
@@ -1954,15 +1956,14 @@
                 },
                 stats: {
                     totalDays: totalDays,
-                    mandatoryWorkingDays: mandatoryWorkingDays,
+                    mandatoryWorkingDays: mandatoryWorkingDays, // HANYA hari kerja biasa
                     optionalOffDays: optionalOffDays,
                     fridayDays: fridayDays,
-                    totalCanAttend: totalCanAttend,
+                    totalCanAttend: totalCanAttend, // mandatoryWorkingDays + optionalOffDays
                     attendedDays: attendedDays,
                     progressPercent: progressPercent,
                     remainingTarget: Math.max(0, TARGET_MINIMUM_DAYS - attendedDays),
                     notAttendedDays: Math.max(0, totalCanAttend - attendedDays),
-                    // PERBAIKAN 2: Tambah statistik baru
                     daysPassed: daysPassed,
                     daysCanAttendPassed: daysCanAttendPassed,
                     remainingOpportunity: remainingOpportunity
