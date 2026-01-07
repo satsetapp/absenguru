@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <!-- Title Judul Aplikasi -->
-    <title>E-Absensi Guru v7.3</title>
+    <title>E-Absensi Guru v7.4</title>
 
     <!-- Open Graph / WhatsApp Preview -->
-    <meta property="og:title" content="E-Absensi Guru v7.3">
+    <meta property="og:title" content="E-Absensi Guru v7.4">
     <meta property="og:description"
         content="Aplikasi absensi guru berbasis web dengan sistem kalender kerja fleksibel. Cepat, modern, dan responsif untuk HP & Laptop.">
     <meta property="og:type" content="website">
@@ -17,7 +17,7 @@
     <meta property="og:image" content="https://satsetapp.github.io/absenguru/logo.png">
 
     <!-- Optional tapi disarankan -->
-    <meta property="og:site_name" content="E-Absensi Guru v7.3">
+    <meta property="og:site_name" content="E-Absensi Guru v7.4">
     <meta property="og:locale" content="id_ID">
 
     <!-- Favicon Browser -->
@@ -376,6 +376,39 @@
             background: rgba(30, 41, 59, 0.5) !important;
             border-color: rgba(148, 163, 184, 0.5) !important;
         }
+
+        /* Di dalam tag <style>, tambahkan: */
+
+        /* Warna fill untuk statistik */
+        .bg-fill-sisa-wajib {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .bg-fill-sisa-target {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0.05) 100%);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+
+        .bg-fill-sudah-hadir {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .bg-fill-sisa-kesempatan {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .bg-fill-sisa-optional {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.05) 100%);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+
+        .bg-fill-buffer {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0.05) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
     </style>
 </head>
 
@@ -403,7 +436,7 @@
                 <img src="logo.png" alt="Logo App"
                     class="w-20 h-20 mx-auto mb-4 object-contain drop-shadow-2xl shadow-indigo-500/30">
 
-                <h1 class="text-3xl font-bold text-white tracking-tight">E-Absensi Guru v7.3</h1>
+                <h1 class="text-3xl font-bold text-white tracking-tight">E-Absensi Guru v7.4</h1>
                 <p class="text-slate-400 mt-2 text-sm">Masuk dengan akun anda</p>
                 <p class="text-indigo-400 text-xs mt-1 animate-pulse-slow">
                     <i class="fa-solid fa-calendar-star mr-1"></i>Sistem Kalender Fleksibel!
@@ -455,7 +488,7 @@
                 <div class="flex items-center gap-3">
                     <!-- LOGO KECIL HEADER -->
                     <img src="logo.png" alt="Logo" class="w-8 h-8 rounded-lg object-contain border border-white/10">
-                    <span class="font-bold text-lg text-white tracking-tight">E-Absensi v7.3</span>
+                    <span class="font-bold text-lg text-white tracking-tight">E-Absensi v7.4</span>
                 </div>
             </div>
 
@@ -754,10 +787,32 @@
                     </div>
 
                     <!-- RINGKASAN CEPAT -->
-                    <!-- Di bagian RINGKASAN CEPAT - Tambah statistik baru -->
-                    <!-- Di bagian RINGKASAN CEPAT - Tambah statistik Sisa Libur Optional -->
-                    <div class="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4"> <!-- Ubah dari 4 ke 5 kolom -->
-                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <!-- SISA WAJIB ABSEN -->
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between bg-fill-sisa-wajib">
+                            <div>
+                                <p class="text-xs text-slate-400" title="Sisa hari yang harus absen untuk capai target">
+                                    Sisa Wajib Absen
+                                </p>
+                                <h4 class="text-xl font-bold text-indigo-400" id="stat-remaining-mandatory">0</h4>
+                            </div>
+                            <i class="fa-solid fa-calendar-check text-indigo-500 text-2xl" id="mandatory-icon"></i>
+                        </div>
+
+                        <!-- SISA TARGET -->
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between bg-fill-sisa-target">
+                            <div>
+                                <p class="text-xs text-slate-400" title="Sisa hari yang harus hadir untuk capai target">
+                                    Sisa Target
+                                </p>
+                                <h4 class="text-xl font-bold text-indigo-400" id="stat-remaining-target">20</h4>
+                            </div>
+                            <i class="fa-solid fa-bullseye text-indigo-500 text-2xl"></i>
+                        </div>
+
+                        <!-- SUDAH HADIR -->
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between bg-fill-sudah-hadir">
                             <div>
                                 <p class="text-xs text-slate-400" title="Total hari yang sudah absen">Sudah Hadir</p>
                                 <h4 class="text-xl font-bold text-green-400" id="stat-attended-days">0</h4>
@@ -765,43 +820,40 @@
                             <i class="fa-solid fa-check-circle text-green-500 text-2xl"></i>
                         </div>
 
-                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                        <!-- SISA KESEMPATAN ABSEN -->
+                        <div
+                            class="glass-panel p-4 rounded-xl flex items-center justify-between bg-fill-sisa-kesempatan">
                             <div>
                                 <p class="text-xs text-slate-400"
-                                    title="Sisa hari yang masih bisa digunakan untuk absen">Sisa Kesempatan Absen</p>
+                                    title="Sisa hari yang masih bisa digunakan untuk absen">
+                                    Sisa Kesempatan Absen
+                                </p>
                                 <h4 class="text-xl font-bold text-yellow-400" id="stat-not-attended">0</h4>
                             </div>
                             <i class="fa-solid fa-clock text-yellow-500 text-2xl"></i>
                         </div>
 
-                        <!-- TAMBAH INI: Sisa Libur Optional -->
-                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                        <!-- SISA LIBUR OPTIONAL -->
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between bg-fill-sisa-optional">
                             <div>
-                                <p class="text-xs text-slate-400" title="Hari libur optional yang masih tersisa">Sisa
-                                    Libur Optional</p>
+                                <p class="text-xs text-slate-400" title="Hari libur optional yang masih tersisa">
+                                    Sisa Libur Optional
+                                </p>
                                 <h4 class="text-xl font-bold text-orange-400" id="stat-remaining-optional">0</h4>
                             </div>
-                            <!-- TAMBAH ID PADA ICON -->
                             <i class="fa-solid fa-calendar-star text-orange-500 text-2xl" id="optional-icon"></i>
                         </div>
 
-                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                        <!-- KESEMPATAN TIDAK ABSEN (BUFFER) -->
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between bg-fill-buffer">
                             <div>
                                 <p class="text-xs text-slate-400"
-                                    title="Jatah hari yang bisa tidak absen dan tetap capai target">Kesempatan Tidak
-                                    Absen</p>
+                                    title="Jatah hari yang bisa tidak absen dan tetap capai target">
+                                    Kesempatan Tidak Absen
+                                </p>
                                 <h4 class="text-xl font-bold text-blue-400" id="stat-buffer-days">0</h4>
                             </div>
                             <i class="fa-solid fa-couch text-blue-500 text-2xl" id="buffer-icon"></i>
-                        </div>
-
-                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
-                            <div>
-                                <p class="text-xs text-slate-400" title="Sisa hari yang harus hadir untuk capai target">
-                                    Sisa Target</p>
-                                <h4 class="text-xl font-bold text-indigo-400" id="stat-remaining-target">20</h4>
-                            </div>
-                            <i class="fa-solid fa-bullseye text-indigo-500 text-2xl"></i>
                         </div>
                     </div>
 
@@ -813,6 +865,7 @@
                                 <div class="w-4 h-4 rounded bg-green-500/30 border border-green-500"></div>
                                 <span class="text-xs text-slate-300">Hari Kerja Wajib</span>
                             </div>
+                            <!-- Dalam LEGENDA -->
                             <div class="flex items-center gap-2">
                                 <div class="w-4 h-4 rounded bg-orange-500/30 border border-orange-500"></div>
                                 <span class="text-xs text-slate-300">Bisa Absen (Optional)</span>
@@ -871,6 +924,12 @@
                         Sistem Absensi Fleksibel
                     </h4>
                     <div class="space-y-3 text-sm text-slate-300">
+                        <!-- Dalam bagian CATATAN PENTING -->
+                        <div class="flex items-start gap-2">
+                            <i class="fa-solid fa-calculator text-indigo-400 mt-1"></i>
+                            <p><span class="font-bold">Sisa Wajib Absen:</span> Hari yang bisa absen dikurangi hari
+                                libur optional</p>
+                        </div>
                         <div class="flex items-start gap-2">
                             <i class="fa-solid fa-check text-green-400 mt-1"></i>
                             <p><span class="font-bold">Bisa Absen:</span> Semua hari <span class="text-red-400">kecuali
@@ -1871,17 +1930,22 @@
             let totalCanAttend = 0;
             let attendedDays = 0;
 
-            // VARIABEL BARU
-            let pastDaysCanAttend = 0;
-            let futureDaysCanAttend = 0;
+            // VARIABEL BARU untuk logika yang benar
+            let pastDaysCanAttend = 0;          // Hari yang bisa absen sudah lewat
+            let futureDaysCanAttend = 0;        // Hari yang bisa absen di masa depan
             let todayCanAttend = false;
             let todayHasAttended = false;
 
+            // Variabel untuk hari kerja wajib (tidak termasuk libur optional)
+            let pastMandatoryDays = 0;          // Hari kerja wajib sudah lewat
+            let futureMandatoryDays = 0;        // Hari kerja wajib di masa depan
+            let todayIsMandatory = false;       // Hari ini hari kerja wajib?
+
             // TAMBAHKAN VARIABEL UNTUK LIBUR OPTIONAL
-            let totalOptionalDays = 0;           // Total hari libur optional dalam periode
-            let pastOptionalDays = 0;            // Libur optional yang sudah lewat
-            let futureOptionalDays = 0;          // Libur optional di masa depan
-            let todayIsOptional = false;         // Hari ini libur optional?
+            let totalOptionalDays = 0;
+            let pastOptionalDays = 0;
+            let futureOptionalDays = 0;
+            let todayIsOptional = false;
 
             while (current <= endDate) {
                 totalDays++;
@@ -1904,6 +1968,8 @@
                 let dayColor = '';
                 let canAttend = false;
                 let isMissed = false;
+                let isMandatoryWorkDay = false; // Hari kerja wajib (tidak libur optional)
+                let isOptionalDay = false;      // Hari libur optional
 
                 const isAdditionalHoliday = holidaySettings.additionalHolidays.some(h => h.date === dateStr);
                 const isOptionalHoliday = holidaySettings.optionalDays.includes(dayOfWeek);
@@ -1923,9 +1989,10 @@
                     dayColor = 'orange';
                     canAttend = true;
                     optionalOffDays++;
-                    totalOptionalDays++; // Hitung total libur optional
+                    totalOptionalDays++;
+                    isOptionalDay = true;
 
-                    // KATEGORIKAN LIBUR OPTIONAL BERDASARKAN WAKTU
+                    // KATEGORIKAN LIBUR OPTIONAL
                     if (isPast) {
                         pastOptionalDays++;
                     } else if (isFuture) {
@@ -1938,6 +2005,16 @@
                     dayColor = 'green';
                     canAttend = true;
                     mandatoryWorkingDays++;
+                    isMandatoryWorkDay = true; // Ini adalah hari kerja wajib
+
+                    // KATEGORIKAN HARI KERJA WAJIB
+                    if (isPast) {
+                        pastMandatoryDays++;
+                    } else if (isFuture) {
+                        futureMandatoryDays++;
+                    } else if (isToday) {
+                        todayIsMandatory = true;
+                    }
                 }
 
                 // Hitung statistik berdasarkan waktu
@@ -1977,6 +2054,8 @@
                     canAttend: canAttend,
                     isAdditionalHoliday: isAdditionalHoliday,
                     isOptionalHoliday: isOptionalHoliday,
+                    isMandatoryWorkDay: isMandatoryWorkDay,
+                    isOptionalDay: isOptionalDay,
                     attendanceData: attendanceData.find(d => d.date === dateStr),
                     isPast: isPast,
                     isFuture: isFuture,
@@ -1988,20 +2067,36 @@
 
             totalCanAttend = mandatoryWorkingDays + optionalOffDays;
 
-            // Hitung sisa kesempatan absen
+            // PERHITUNGAN YANG BENAR:
+
+            // 1. SISA KESEMPATAN ABSEN (termasuk libur optional)
             let remainingOpportunity = 0;
             if (todayCanAttend && !todayHasAttended) {
-                remainingOpportunity = futureDaysCanAttend + 1;
+                remainingOpportunity = futureDaysCanAttend + 1; // + hari ini
             } else {
                 remainingOpportunity = futureDaysCanAttend;
             }
             remainingOpportunity = Math.max(0, remainingOpportunity);
 
-            // Hitung sisa libur optional
+            // 2. SISA LIBUR OPTIONAL
             let remainingOptionalDays = futureOptionalDays;
             if (todayIsOptional && !todayHasAttended) {
                 remainingOptionalDays += 1; // Hari ini libur optional dan belum absen
             }
+
+            // 3. SISA WAJIB ABSEN (hanya hari kerja wajib, TIDAK termasuk libur optional)
+            let remainingMandatoryDays = 0;
+            if (todayIsMandatory && !todayHasAttended) {
+                remainingMandatoryDays = futureMandatoryDays + 1; // + hari ini
+            } else {
+                remainingMandatoryDays = futureMandatoryDays;
+            }
+            remainingMandatoryDays = Math.max(0, remainingMandatoryDays);
+
+            // 4. BUFFER DAYS (Kesempatan Tidak Absen)
+            // Rumus: (Sisa Kesempatan Absen) - (Sisa Target yang harus dipenuhi)
+            const remainingTarget = Math.max(0, TARGET_MINIMUM_DAYS - attendedDays);
+            const bufferDays = remainingOpportunity - remainingTarget;
 
             const progressPercent = TARGET_MINIMUM_DAYS > 0 ?
                 Math.min(100, Math.round((attendedDays / TARGET_MINIMUM_DAYS) * 100)) : 0;
@@ -2021,17 +2116,26 @@
                     totalCanAttend: totalCanAttend,
                     attendedDays: attendedDays,
                     progressPercent: progressPercent,
-                    remainingTarget: Math.max(0, TARGET_MINIMUM_DAYS - attendedDays),
+                    remainingTarget: remainingTarget,
                     notAttendedDays: Math.max(0, totalCanAttend - attendedDays),
+
+                    // Statistik untuk Sisa Kesempatan Absen (termasuk optional)
                     pastDaysCanAttend: pastDaysCanAttend,
                     futureDaysCanAttend: futureDaysCanAttend,
                     todayCanAttend: todayCanAttend,
                     todayHasAttended: todayHasAttended,
                     remainingOpportunity: remainingOpportunity,
-                    targetMandatoryAttendance: TARGET_MINIMUM_DAYS,
-                    bufferDays: remainingOpportunity - Math.max(0, TARGET_MINIMUM_DAYS - attendedDays),
 
-                    // TAMBAHKAN STATISTIK LIBUR OPTIONAL
+                    // Statistik untuk Sisa Wajib Absen (tidak termasuk optional)
+                    pastMandatoryDays: pastMandatoryDays,
+                    futureMandatoryDays: futureMandatoryDays,
+                    todayIsMandatory: todayIsMandatory,
+                    remainingMandatoryDays: remainingMandatoryDays,
+
+                    targetMandatoryAttendance: TARGET_MINIMUM_DAYS,
+                    bufferDays: bufferDays,
+
+                    // STATISTIK LIBUR OPTIONAL
                     totalOptionalDays: totalOptionalDays,
                     pastOptionalDays: pastOptionalDays,
                     futureOptionalDays: futureOptionalDays,
@@ -2181,78 +2285,139 @@
 
             // Update semua statistik yang sudah ada...
             document.getElementById('stat-total-days').textContent = stats.totalDays;
-
-            if (document.getElementById('stat-mandatory-attendance')) {
-                document.getElementById('stat-mandatory-attendance').textContent = TARGET_MINIMUM_DAYS + ' hari';
-            }
-
             document.getElementById('stat-mandatory-working').textContent = stats.mandatoryWorkingDays;
             document.getElementById('stat-optional-off').textContent = stats.optionalOffDays;
             document.getElementById('stat-can-attend').textContent = stats.totalCanAttend;
             document.getElementById('stat-total-attended').textContent = stats.attendedDays;
             document.getElementById('stat-attended-days').textContent = stats.attendedDays;
-            document.getElementById('stat-not-attended').textContent = stats.remainingOpportunity;
             document.getElementById('stat-remaining-target').textContent = stats.remainingTarget;
 
-            // ========== UPDATE SISA LIBUR OPTIONAL DENGAN ICON ==========
+            // ========== UPDATE SISA KESEMPATAN ABSEN ==========
+            const notAttendedElement = document.getElementById('stat-not-attended');
+            if (notAttendedElement) {
+                notAttendedElement.textContent = stats.remainingOpportunity;
+
+                // Tooltip
+                const description = notAttendedElement.parentElement.querySelector('p.text-xs');
+                if (description) {
+                    let tooltip = `Sisa ${stats.remainingOpportunity} hari yang bisa absen`;
+                    if (stats.todayCanAttend && !stats.todayHasAttended) {
+                        tooltip += " (termasuk hari ini)";
+                    }
+                    description.title = tooltip;
+                }
+            }
+
+            // ========== UPDATE SISA WAJIB ABSEN ==========
+            const remainingMandatoryElement = document.getElementById('stat-remaining-mandatory');
+            const mandatoryIcon = document.getElementById('mandatory-icon');
+
+            if (remainingMandatoryElement && mandatoryIcon) {
+                remainingMandatoryElement.textContent = stats.remainingMandatoryDays;
+
+                // Update warna dan icon
+                if (stats.remainingMandatoryDays > 0) {
+                    remainingMandatoryElement.className = 'text-xl font-bold text-indigo-400';
+                    mandatoryIcon.className = 'fa-solid fa-calendar-check text-indigo-500 text-2xl';
+
+                    // Icon berubah berdasarkan jumlah
+                    if (stats.remainingMandatoryDays >= 10) {
+                        mandatoryIcon.className = 'fa-solid fa-exclamation-triangle text-orange-500 text-2xl';
+                    } else if (stats.remainingMandatoryDays >= 5) {
+                        mandatoryIcon.className = 'fa-solid fa-calendar-check text-yellow-500 text-2xl';
+                    }
+
+                    // Tooltip
+                    const description = remainingMandatoryElement.parentElement.querySelector('p.text-xs');
+                    if (description) {
+                        let tooltip = `Sisa ${stats.remainingMandatoryDays} hari kerja wajib`;
+                        if (stats.todayIsMandatory && !stats.todayHasAttended) {
+                            tooltip += " (termasuk hari ini)";
+                        }
+                        tooltip += " - tidak termasuk libur optional";
+                        description.title = tooltip;
+                    }
+                } else {
+                    remainingMandatoryElement.className = 'text-xl font-bold text-green-400';
+                    mandatoryIcon.className = 'fa-solid fa-check-circle text-green-500 text-2xl';
+
+                    const description = remainingMandatoryElement.parentElement.querySelector('p.text-xs');
+                    if (description) {
+                        description.title = 'Semua hari kerja wajib sudah terpenuhi!';
+                    }
+                }
+            }
+
+            // ========== UPDATE SISA LIBUR OPTIONAL ==========
             const remainingOptionalElement = document.getElementById('stat-remaining-optional');
-            const optionalIcon = document.getElementById('optional-icon'); // ← TAMBAH INI
+            const optionalIcon = document.getElementById('optional-icon');
 
             if (remainingOptionalElement && optionalIcon) {
                 remainingOptionalElement.textContent = stats.remainingOptionalDays;
 
-                // Warna dan icon berdasarkan jumlah
                 if (stats.remainingOptionalDays > 0) {
-                    // Ada libur optional tersisa
                     remainingOptionalElement.className = 'text-xl font-bold text-orange-400';
                     optionalIcon.className = 'fa-solid fa-calendar-star text-orange-500 text-2xl';
 
                     // OPTIONAL: Icon berubah-ubah berdasarkan jumlah
                     if (stats.remainingOptionalDays >= 5) {
-                        optionalIcon.className = 'fa-solid fa-party-horn text-orange-500 text-2xl'; // Banyak libur
+                        optionalIcon.className = 'fa-solid fa-party-horn text-orange-500 text-2xl';
                     } else if (stats.remainingOptionalDays >= 3) {
-                        optionalIcon.className = 'fa-solid fa-star text-orange-500 text-2xl'; // Cukup libur
-                    } else {
-                        optionalIcon.className = 'fa-solid fa-calendar-star text-orange-500 text-2xl'; // Sedikit libur
+                        optionalIcon.className = 'fa-solid fa-star text-orange-500 text-2xl';
+                    }
+
+                    // Tooltip
+                    const description = remainingOptionalElement.parentElement.querySelector('p.text-xs');
+                    if (description) {
+                        let tooltip = `Masih ada ${stats.remainingOptionalDays} hari libur optional`;
+                        if (stats.todayIsOptional && !stats.todayHasAttended) {
+                            tooltip += " (termasuk hari ini)";
+                        }
+                        description.title = tooltip;
                     }
                 } else {
-                    // Tidak ada libur optional tersisa
                     remainingOptionalElement.className = 'text-xl font-bold text-slate-400';
                     optionalIcon.className = 'fa-solid fa-calendar-star text-slate-500 text-2xl';
+
+                    const description = remainingOptionalElement.parentElement.querySelector('p.text-xs');
+                    if (description) {
+                        description.title = 'Tidak ada hari libur optional tersisa';
+                    }
                 }
             }
 
-            // Update tooltip untuk Sisa Libur Optional
-            const optionalDescription = document.querySelector('#stat-remaining-optional')?.parentElement?.querySelector('p.text-xs');
-            if (optionalDescription) {
-                if (stats.remainingOptionalDays > 0) {
-                    optionalDescription.title = `Masih ada ${stats.remainingOptionalDays} hari libur optional di masa depan`;
-                } else {
-                    optionalDescription.title = 'Tidak ada hari libur optional tersisa';
-                }
-            }
-            // ========== END UPDATE ==========
-
-            // Update Kesempatan Tidak Absen (buffer)
-            const remainingOpportunity = stats.remainingOpportunity;
-            const remainingTarget = stats.remainingTarget;
-            const bufferDays = remainingOpportunity - remainingTarget;
-
+            // ========== UPDATE KESEMPATAN TIDAK ABSEN (BUFFER) ==========
             const bufferElement = document.getElementById('stat-buffer-days');
             const bufferIcon = document.getElementById('buffer-icon');
 
             if (bufferElement && bufferIcon) {
-                bufferElement.textContent = bufferDays;
+                bufferElement.textContent = stats.bufferDays;
 
-                if (bufferDays > 0) {
+                if (stats.bufferDays > 0) {
                     bufferElement.className = 'text-xl font-bold text-blue-400';
                     bufferIcon.className = 'fa-solid fa-couch text-blue-500 text-2xl';
-                } else if (bufferDays === 0) {
+
+                    // Tooltip
+                    const description = bufferElement.parentElement.querySelector('p.text-xs');
+                    if (description) {
+                        description.title = `Masih bisa tidak absen ${stats.bufferDays} hari dan tetap capai target`;
+                    }
+                } else if (stats.bufferDays === 0) {
                     bufferElement.className = 'text-xl font-bold text-yellow-400';
                     bufferIcon.className = 'fa-solid fa-exclamation-triangle text-yellow-500 text-2xl';
+
+                    const description = bufferElement.parentElement.querySelector('p.text-xs');
+                    if (description) {
+                        description.title = 'Harus absen semua hari tersisa untuk capai target';
+                    }
                 } else {
                     bufferElement.className = 'text-xl font-bold text-red-400';
                     bufferIcon.className = 'fa-solid fa-running text-red-500 text-2xl';
+
+                    const description = bufferElement.parentElement.querySelector('p.text-xs');
+                    if (description) {
+                        description.title = `Perlu menambah ${Math.abs(stats.bufferDays)} hari absen di luar periode untuk capai target`;
+                    }
                 }
             }
 
